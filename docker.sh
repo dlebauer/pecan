@@ -110,6 +110,7 @@ echo "# ----------------------------------------------------------------------"
 # not building dependencies image, following command will build this
 if [ "${DEPEND}" == "build" ]; then
     ${DEBUG} docker build \
+        --pull \
         --build-arg R_VERSION=${R_VERSION} \
         --tag pecan/depends:${IMAGE_VERSION} \
         docker/depends
@@ -149,16 +150,33 @@ for x in base web docs; do
 done
 
 # all files in subfolder
-for x in models executor data thredds monitor rstudio-nginx; do
+for x in models executor data thredds monitor rstudio-nginx check; do
     ${DEBUG} docker build \
         --tag pecan/$x:${IMAGE_VERSION} \
         --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
         docker/$x
 done
 
+# shiny apps
+for x in dbsync; do
+    ${DEBUG} docker build \
+        --tag pecan/shiny-$x:${IMAGE_VERSION} \
+        --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
+        shiny/$x
+done
+
 # --------------------------------------------------------------------------------
 # MODEL BUILD SECTION
 # --------------------------------------------------------------------------------
+
+# build basgra
+for version in BASGRA_N_v1.0; do
+    ${DEBUG} docker build \
+        --tag pecan/model-basgra-$(echo $version | tr '[A-Z]' '[a-z]'):${IMAGE_VERSION} \
+        --build-arg MODEL_VERSION="${version}" \
+        --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
+        models/basgra
+done
 
 # build biocro
 for version in 0.95; do
@@ -170,11 +188,12 @@ for version in 0.95; do
 done
 
 # build ed2
-for version in git; do
+for version in git 2.2.0; do
     ${DEBUG} docker build \
         --tag pecan/model-ed2-${version}:${IMAGE_VERSION} \
         --build-arg MODEL_VERSION="${version}" \
         --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
+        --build-arg BINARY_VERSION="2.2" \
         models/ed
 done
 
