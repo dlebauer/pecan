@@ -1,4 +1,14 @@
 #install what we need
+
+# graph pkg deprecated on CRAN, install from BiocManager
+# CodeDepends depends on graph 
+if (!require('graph')){
+  if(!require('BiocManager')){
+    install.packages('BiocManager')
+  }
+  BiocManager::install('graph')
+}
+
 lapply(c('dplyr',
          'shinyWidgets',
          'CodeDepends',
@@ -13,8 +23,9 @@ lapply(c('dplyr',
     }
 )
 
-if (!('DependenciesGraphs' %in% installed.packages()[,1])) devtools::install_github("datastorm-open/DependenciesGraphs")
-
+if (!require('DependenciesGraphs')) {
+  devtools::install_github("datastorm-open/DependenciesGraphs")
+}
 
 curentd2 <<- NULL
 curentd1 <<- NULL

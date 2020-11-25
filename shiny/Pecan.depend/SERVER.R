@@ -87,7 +87,7 @@ shinyServer(function(input, output, session) {
                   install.packages(func)
                 }
                 library(func, character.only = TRUE)
-                dep1 <- envirDependencies(paste0("package:", func))
+                dep1 <- DependenciesGraphs::envirDependencies(paste0("package:", func))
                 nb.fun <- length(dep1$Nomfun$label)
                 
                 
@@ -120,7 +120,7 @@ shinyServer(function(input, output, session) {
                   install.packages(func)
                 }
                 library(func, character.only = TRUE)
-                dep1 <- envirDependencies(paste0("package:", func))
+                dep1 <- DependenciesGraphs::envirDependencies(paste0("package:", func))
                 nb.fun <- length(dep1$Nomfun$label)
                 
                 
