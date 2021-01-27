@@ -28,12 +28,13 @@ put_veg_module <- function(getveg.id, dbparms,
   
   #--------------------------------------------------------------------------------------------------#
   # Write model specific IC files
-  bety <- dplyr::src_postgres(dbname   = dbparms$bety$dbname, 
-                              host     = dbparms$bety$host, 
-                              user     = dbparms$bety$user, 
-                              password = dbparms$bety$password)
+  bety <- list(con = DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                         dbname   = dbparms$bety$dbname, 
+                         host     = dbparms$bety$host, 
+                         user     = dbparms$bety$user, 
+                         password = dbparms$bety$password))
   
-  con <- bety$con
+  con <- bety
   on.exit(db.close(con), add = TRUE)
   
   # Determine IC file format name and mimetype

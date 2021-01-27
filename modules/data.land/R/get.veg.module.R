@@ -29,10 +29,11 @@ get_veg_module <- function(input_veg,
   site_name <- new_site$name
   ## Prepare to call convert.inputs
   pkg  <- "PEcAn.data.land"
-  bety <- dplyr::src_postgres(dbname   = dbparms$bety$dbname, 
-                              host     = dbparms$bety$host, 
-                              user     = dbparms$bety$user, 
-                              password = dbparms$bety$password)
+  bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                         dbname   = dbparms$bety$dbname, 
+                         host     = dbparms$bety$host, 
+                         user     = dbparms$bety$user, 
+                         password = dbparms$bety$password)
   con  <- bety$con
   
   # this check might change depending on what other sources that requires querying its own DB we will have

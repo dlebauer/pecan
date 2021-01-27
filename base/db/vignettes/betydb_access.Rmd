@@ -33,7 +33,11 @@ Documentation for the `dplyr` interface to databases is provided in the [dplyr v
 ```{r, eval=FALSE}
 library(dplyr)
 d <- settings$database$bety[c("dbname", "password", "host", "user")]
-bety <- src_postgres(host = d$host, user = d$user, password = d$password, dbname = d$dbname)
+bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                       host = d$host, 
+                       user = d$user, 
+                       password = d$password, 
+                       dbname = d$dbname)
 
 species <- tbl(bety, 'species') %>% 
   select(id, scientificname, genus) %>% 

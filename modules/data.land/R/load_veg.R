@@ -7,10 +7,11 @@ load_veg <- function(new_site, start_date, end_date,
                      source_id, source, icmeta = NULL, format_name = NULL, 
                      machine_host, dbparms, outfolder, overwrite = FALSE, ...){
   
-   bety <- dplyr::src_postgres(dbname   = dbparms$bety$dbname, 
-                              host     = dbparms$bety$host, 
-                              user     = dbparms$bety$user, 
-                              password = dbparms$bety$password)
+   bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                          dbname   = dbparms$bety$dbname, 
+                          host     = dbparms$bety$host, 
+                          user     = dbparms$bety$user, 
+                          password = dbparms$bety$password)
 
   #--------------------------------------------------------------------------------------------------#
   # Load data : this step requires DB connections 

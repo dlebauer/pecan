@@ -19,11 +19,12 @@ read_settings_BRR <- function(settings){
     return (settings)
   }
   
-  bety <- dplyr::src_postgres(dbname   = settings$database$bety$dbname,
-                              host     = settings$database$bety$host,
-                              user     = settings$database$bety$user,
-                              password = settings$database$bety$password)
-  BRR <- tbl(bety,"reference_runs") %>% 
+  bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                         dbname   = settings$database$bety$dbname,
+                         host     = settings$database$bety$host,
+                         user     = settings$database$bety$user,
+                         password = settings$database$bety$password)
+  BRR <- tbl(bety, "reference_runs") %>% 
     filter(id == settings$benchmarking$reference_run_id) %>% 
     collect()
   

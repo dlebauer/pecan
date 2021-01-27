@@ -105,10 +105,11 @@ pda.emulator <- function(settings, external.data = NULL, external.priors = NULL,
   }
   
   if(!remote){
-    bety <- dplyr::src_postgres(dbname = settings$database$bety$dbname,
-                                host = settings$database$bety$host, 
-                                user = settings$database$bety$user, 
-                                password = settings$database$bety$password)
+    bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                           dbname = settings$database$bety$dbname,
+                           host = settings$database$bety$host, 
+                           user = settings$database$bety$user, 
+                           password = settings$database$bety$password)
   }else{
     bety     <- list()
     bety$con <- NULL

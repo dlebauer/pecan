@@ -9,7 +9,7 @@ library(lubridate)
 
 
 d <- settings$database$bety[c("dbname", "password", "host", "user")]
-bety <- src_postgres(host = d$host, user = d$user, password = d$password, dbname = d$dbname)
+bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), host = d$host, user = d$user, password = d$password, dbname = d$dbname)
 settings$host$name <- "localhost"
 
 bm.settings <- define_benchmark(settings,bety)

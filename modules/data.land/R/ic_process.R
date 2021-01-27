@@ -42,10 +42,11 @@ ic_process <- function(settings, input, dir, overwrite = FALSE){
   }
   
   # set up bety connection
-  bety <- dplyr::src_postgres(dbname   = dbparms$bety$dbname, 
-                              host     = dbparms$bety$host, 
-                              user     = dbparms$bety$user, 
-                              password = dbparms$bety$password)
+  bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                         dbname   = dbparms$bety$dbname, 
+                         host     = dbparms$bety$host, 
+                         user     = dbparms$bety$user, 
+                         password = dbparms$bety$password)
   
   con <- bety$con
   on.exit(db.close(con), add = TRUE)

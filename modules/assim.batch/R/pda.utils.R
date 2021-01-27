@@ -1025,10 +1025,11 @@ return_multi_site_objects <- function(multi.settings){
   any.scaling <- sapply(settings$assim.batch$param.names, `[[`, "scaling")
   sf <- unique(unlist(any.scaling))
   
-  bety <- dplyr::src_postgres(dbname = settings$database$bety$dbname,
-                              host = settings$database$bety$host, 
-                              user = settings$database$bety$user, 
-                              password = settings$database$bety$password)
+  bety <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                         dbname = settings$database$bety$dbname,
+                         host = settings$database$bety$host, 
+                         user = settings$database$bety$user, 
+                         password = settings$database$bety$password)
   
   # get prior.list
   temp        <- pda.load.priors(settings, bety$con, TRUE)

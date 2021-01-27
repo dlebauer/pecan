@@ -12,7 +12,7 @@
 #'
 #' @param input_codes Character vector of species codes
 #' @param format_name Species code format name (see details)
-#' @param bety \code{dplyr} \code{src} object containing BETY connection
+#' @param bety BETYdb database connection
 #' @param translation_table Data frame with custom translation table (see details).
 #' @return \code{data.frame} containing the following columns:
 #' \describe{
@@ -24,7 +24,8 @@
 #' @author Alexey Shiklomanov <ashiklom@bu.edu>, Istem Fer
 #' @examples
 #' \dontrun{
-#' bety <- dplyr::src_postgres(dbname = 'bety',
+#' con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+#'                        dbname = 'bety',
 #'                        user = 'bety',
 #'                        password = 'bety',
 #'                        host = 'localhost')
