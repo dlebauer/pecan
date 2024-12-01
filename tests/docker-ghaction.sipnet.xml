@@ -58,9 +58,5 @@
   </run>
   <host>
     <name>localhost</name>
-    <rabbitmq>
-      <uri>amqp://guest:guest@rabbitmq/%2F</uri>
-      <queue>SIPNET_git</queue>
-    </rabbitmq>
   </host>
 </pecan>
