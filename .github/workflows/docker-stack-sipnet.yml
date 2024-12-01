@@ -55,7 +55,7 @@ jobs:
     
     - name: Run required containers
       run: |
-        docker compose up --wait -d sipnet executor monitor
+        docker compose up --wait -d sipnet executor monitor rabbitmq
 
     - name: List running containers
       run: |
