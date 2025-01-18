@@ -355,17 +355,28 @@ sda.enkf.multisite <- function(settings,
       #reformatting params
       new.params <- sda_matchparam(settings, ensemble.samples, site.ids, nens)
     }
-      #sample met ensemble members
+      #sample met and soil parameter ensemble members 
       #TODO: incorporate Phyllis's restart work
       #      sample all inputs specified in the settings$ensemble not just met
-      inputs <- PEcAn.settings::papply(conf.settings,function(setting) {
-        PEcAn.uncertainty::input.ens.gen(
-          settings = setting,
-          input = "met",
-          method = setting$ensemble$samplingspace$met$method,
-          parent_ids = NULL 
-        )
-       })
+      input_name <- c("met","soilinitcond")
+      inputs <- list()
+      new_inputs <- list()
+      for (i_input in seq_along(input_name)){
+       inputs[[input_name[i_input]]]<-PEcAn.settings::papply(conf.settings,function(setting) {
+         PEcAn.uncertainty::input.ens.gen(
+           settings = setting,
+           input = input_name[i_input],
+           method = setting$ensemble$samplingspace[[input_name[i_input]]]$method,
+           parent_ids = NULL 
+          )
+        })
+       #reformat the input list to make the multisite setting as the first sub-category 
+       for (setting_name in names(inputs[[input_name[i_input]]])) {
+       new_inputs[[setting_name]][[input_name[i_input]]] <- inputs[[input_name[i_input]]][[setting_name]]
+       }
+      } 
+      
+
   ###------------------------------------------------------------------------------------------------###
   ### loop over time                                                                                 ###
   ###------------------------------------------------------------------------------------------------###
@@ -379,7 +390,9 @@ sda.enkf.multisite <- function(settings,
       if (t>1){
         #for next time step split the met if model requires
         #-Splitting the input for the models that they don't care about the start and end time of simulations and they run as long as their met file.
-        inputs.split <- metSplit(conf.settings, inputs, settings, model, no_split = FALSE, obs.times, t, nens, restart_flag = FALSE, my.split_inputs)
+        inputs.split <- list()
+        inputs.split <- metSplit(conf.settings, new_inputs, settings, model, no_split = FALSE, obs.times, t, nens, restart_flag = FALSE, my.split_inputs)
+        
         
         #---------------- setting up the restart argument for each site separately and keeping them in a list
         restart.list <-
@@ -769,3 +782,4 @@ sda.enkf.multisite <- function(settings,
       ## MCD: I commented the above "if" out because if you are restarting from a previous forecast, this might delete the files in that earlier folder
   } ### end loop over time
 } # sda.enkf
+      

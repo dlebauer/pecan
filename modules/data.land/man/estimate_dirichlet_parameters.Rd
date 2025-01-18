@@ -2,7 +2,10 @@
 % Please edit documentation in R/soil_params_ensemble.R
 \name{estimate_dirichlet_parameters}
 \alias{estimate_dirichlet_parameters}
-\title{A function to estimate individual alphas for Dirichlet distribution to approximate the observed quantiles with means as known moments}
+\title{A function to estimate individual alphas for Dirichlet distribution to approximate the observed quantiles with means as known moments
+for SoilGrids soil texture data. 
+Dirichlet distribution is assumed as soil texture data follow categorical distribution and the probability of each category is in the range 0 to 1, 
+and all must sum to 1.}
 \usage{
 estimate_dirichlet_parameters(means, quantiles)
 }
@@ -13,4 +16,7 @@ estimate_dirichlet_parameters(means, quantiles)
 }
 \description{
 A function to estimate individual alphas for Dirichlet distribution to approximate the observed quantiles with means as known moments
+for SoilGrids soil texture data. 
+Dirichlet distribution is assumed as soil texture data follow categorical distribution and the probability of each category is in the range 0 to 1, 
+and all must sum to 1.
 }

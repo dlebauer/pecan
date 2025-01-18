@@ -232,10 +232,10 @@ soil_params <- function(soil_type=NULL, sand=NULL, silt=NULL, clay=NULL, bulk=NU
   mysoil$soil_thermal_capacity <- mysoil$slcpd / mysoil$soil_bulk_density   ## J/m3/K / [kg m-3] -> J/kg/K
   
   ## drop variables that are only meaningful internally
-  #mysoil$slpotcp <- NULL
-  #mysoil$slpotwp <- NULL
-  #mysoil$slden <- NULL ## not clear how this is is different from bulk density in the look-up-table
-  #mysoil$slcpd <- NULL
+  mysoil$slpotcp <- NULL
+  mysoil$slpotwp <- NULL
+  mysoil$slden <- NULL ## not clear how this is is different from bulk density in the look-up-table
+  mysoil$slcpd <- NULL
   
   return(mysoil)
 }#end function
@@ -265,14 +265,7 @@ sclass <- function(sandfrac,clayfrac){
   sand <- 100. * sandfrac
   clay <- 100. * clayfrac
   # Prevent silt from being negative due to numerical precision issue
-  silt <- c()
-  for (i in seq_along(sand)) {
-    if (sand[i] + clay[i] >= 100.) {
-      silt[i] <- 0
-    } else {
-      silt[i] <- 100. - sand[i] - clay[i]
-    }
-  }
+  silt <- pmax(100. - sand - clay, 0)
   
   #---------------------------------------------------------------------------------------#
   

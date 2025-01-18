@@ -348,10 +348,7 @@ extract_soil_nc <- function(in.file,outdir,lat,lon){
 #'  * `soil_thermal_conductivity_at_saturation`
 #'  * `soil_thermal_capacity`
 #'  * `soil_albedo`
-#'  * `slpotwp`
-#'  * `slpotcp`
-#'  * `slcpd`
-#'  * `slden`
+
 #'
 #' @param varname character vector. See details
 #'
@@ -386,11 +383,7 @@ soil.units <- function(varname = NA){
                                       "soil_thermal_conductivity","W m-1 K-1", 
                                       "soil_thermal_conductivity_at_saturation","W m-1 K-1", 
                                       "soil_thermal_capacity","J kg-1 K-1",
-                                      "soil_albedo","1",
-                                      "slpotwp","1", #intermediate variable, meaningless and unit "1" is used for convenience
-                                      "slpotcp","1", #intermediate variable, meaningless and unit "1" is used for convenience
-                                      "slcpd","J m-3 K-1",
-                                      "slden","kg m-3"
+                                      "soil_albedo","1"
                                       
   ),
   ncol=2,byrow = TRUE))

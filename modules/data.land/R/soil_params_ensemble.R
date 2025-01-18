@@ -1,15 +1,18 @@
 ##' A function to estimate individual alphas for Dirichlet distribution to approximate the observed quantiles with means as known moments
-##' 
+##' for SoilGrids soil texture data. 
+##' Dirichlet distribution is assumed as soil texture data follow categorical distribution and the probability of each category is in the range 0 to 1, 
+##' and all must sum to 1.
+##'  
 ##' @param means A vector of means of sand, clay, and silt proportion for one soil layer at one site from SoilGrids data
 ##' @param quantiles A list of 5th, 50th, and 95th percentiles for sand, clay, and silt for one soil layer at one site from SoilGrids data
 ##'
 ##' @example
 ##' \dontrun{
-##' means <- c(0.383,0.213,0.403) # means of sand, clay, and silt at one site and one depth
+##' means <- c(0.566,0.193,0.241) # means of sand, clay, and silt at one site and one depth
 ##' quantiles <-list(
-##' q5 = c(0.551,0.055,0.069), # 5th percentile for each category: sand, clay, and silt at one site and one depth
-##' q50 = c(0.691,0.124,0.156), # 50th percentile (median) for each category: sand, clay, and silt at one site and one depth
-##' q95 = c(0.786,0.258,0.297))  # 95th percentile for each category: sand, clay, and silt at one site and one depth
+##' q5 = c(0.127,0.034,0.052), # 5th percentile for each category: sand, clay, and silt at one site and one depth
+##' q50 = c(0.615,0.15,0.191), # 50th percentile (median) for each category: sand, clay, and silt at one site and one depth
+##' q95 = c(0.799,0.66,0.616))  # 95th percentile for each category: sand, clay, and silt at one site and one depth
 ##' alpha_est <- estimate_dirichlet_parameters(means, quantiles)
 ##' }
 ##'  @return The individual alphas that work best to fit the observed quantiles
@@ -17,23 +20,19 @@
 ##'  @author Qianyu Li
 estimate_dirichlet_parameters <- function(means, quantiles) {
   
-  # A function to optimize alpha0
+  # A function to optimize alpha0, which is the sum of individual alphas.
   estimate_alpha0 <- function(means, quantiles) {
     # Objective function to minimize the difference between observed and simulated quantiles with means as a known moment
     objective_function <- function(alpha0) {
       if (alpha0 <= 0)
-        return(Inf)
+        return(Inf) # alpha0 couldn't be zero or negative as it is the sum of individual alpha which are positive reals
+      # Estimate individual alpha based on that the means of each categorical data are individual alpha divided by alpha0 in Dirichlet distribution
       alpha <- means * alpha0
-      q5 <- quantiles$q5
-      q50 <- quantiles$q50
-      q95 <- quantiles$q95
-      
-      # Compute differences with observed quantiles
+      # Generate samples based on estimated alpha
       samples <- MCMCpack::rdirichlet(10000, alpha) # Generate samples
-      sim_q5 <- apply(samples, 2, quantile, probs = 0.05, na.rm = TRUE)
-      sim_q50 <-apply(samples, 2, quantile, probs = 0.50, na.rm = TRUE)
-      sim_q95 <-apply(samples, 2, quantile, probs = 0.95, na.rm = TRUE)
-      quantile_diff <-sum((sim_q5 - q5) ^ 2 + (sim_q50 - q50) ^ 2 + (sim_q95 - q95) ^ 2)
+      # Compute differences with observed quantiles
+      estimated_quantiles <- apply(samples, 2, quantile, probs = c(0.05, 0.5, 0.95),na.rm = TRUE)
+      quantile_diff <- sum((estimated_quantiles - do.call(rbind, quantiles))^2)
       return(quantile_diff)
     }
     
@@ -57,7 +56,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 
 
 
-##' A function to estimate the soil parameters based on soil texture data and write the parameter paths into settings
+##' A function to estimate the soil parameters based on SoilGrids soil texture data and write the parameter paths into settings
 ##' 
 ##' @param settings A multi-site settings
 ##' @param sand A data frame containing sand fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"
@@ -74,7 +73,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 ##' clay <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/clay_percent.rds") #clay fraction in percentage
 ##' silt <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/silt_percent.rds") #silt fraction in percentage
 ##' settings <-read.settings("/projectnb/dietzelab/Cherry/xml/pecan_monthly_SDA_soilwater.xml")
-##' soil_params_ensemble(settings,sand,clay,silt,outdir)
+##' soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
 ##'  }
 ##'  
 ##'  @return Ensemble soil parameter files defined in outdir and file paths in xml file
@@ -83,7 +82,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 ##'  @importFrom magrittr %>%
 ##'  
 
-soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_settings=TRUE){
+soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_into_settings=TRUE){
   
   # A function to rescale the sums of mean texture fractions to 1 as the original sums are slightly different from 1 for some layers
   rescale_sum_to_one <- function(sand, clay, silt) {
@@ -95,29 +94,6 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
       sand = rescaled_sand,
       clay = rescaled_clay,
       silt = rescaled_silt))
-  }
-  
-  # A function to reformat the nested list as inputs to "soil2netcdf" function
-  reformat_soil_list <- function(samples_all_depth) {
-    # Define the fractions we want to extract
-    fractions <-
-      c("fraction_of_sand_in_soil",
-        "fraction_of_clay_in_soil",
-        "fraction_of_silt_in_soil")
-    
-    # Initialize a new list to store reformatted data
-    reformatted <-setNames(vector("list", length(fractions)), fractions)
-    
-    # Extract data for each fraction
-    for (fraction in fractions) {
-      reformatted[[fraction]] <-
-        unlist(lapply(samples_all_depth, function(depth_list) {
-          depth_list[[fraction]] # Extract the fraction value
-        })) %>% purrr::set_names(NULL)
-    }
-    # Combine depth into a single vector for readability
-    reformatted$soil_depth <- as.numeric(names(samples_all_depth))
-    return(reformatted)
   }
   
   # A function to write to settings
@@ -133,7 +109,7 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
      clay$Value <- if (is.null(clay$Value)) { NULL } else { clay$Value / 100 }
      silt$Value <- if (is.null(silt$Value)) { NULL } else { silt$Value / 100 }
   }
-  ens_n <- settings$ensemble$size
+  ens_n <- as.numeric(settings$ensemble$size)
   # Merge all soil texture data together
   texture_all <-merge(sand, clay, by=c("Depth", "Quantile", "Siteid"))  %>% merge(silt, by=c("Depth", "Quantile", "Siteid")) %>%
   `colnames<-`(c(
@@ -144,11 +120,11 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
       "fraction_of_clay_in_soil",
       "fraction_of_silt_in_soil"))
 
-   # Substitute the depth range with the middle depth value in meter
+   # Substitute the depth range with the bottom depth values (with the assumption that the first layer's top is at 0)
    texture_all$soil_depth <-
-     gsub("100-200cm", 1.5, gsub("60-100cm", 0.8, gsub(
-    "30-60cm", 0.45, gsub("15-30cm", 0.225, gsub(
-      "5-15cm", 0.1, gsub("0-5cm", 0.025, texture_all$soil_depth))))))
+     gsub("100-200cm", 200, gsub("60-100cm", 100, gsub(
+    "30-60cm", 60, gsub("15-30cm", 30, gsub(
+      "5-15cm", 15, gsub("0-5cm", 5, texture_all$soil_depth))))))
    texture_all$soil_depth <- as.numeric(texture_all$soil_depth)
    # Reformat the list based on site id
    f1 <- factor(texture_all$siteid, levels = unique(texture_all$siteid))
@@ -165,7 +141,7 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
       temp_outdir <- file.path(outdir, siteid)
       dir.create(temp_outdir)
       # Estimate Dirichlet parameters for each depth at each site
-      for (depths in c(0.025, 0.1, 0.225, 0.45, 0.8, 1.5)) {
+      for (depths in sort(unique(texture_all$soil_depth))) {
           quantiles <- list(
                q5 = dplyr::filter(dat[[i]], quantile == "0.05", soil_depth == depths) %>% dplyr::select(
                     fraction_of_sand_in_soil,
@@ -193,10 +169,10 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
          alpha_est <- estimate_dirichlet_parameters(as.matrix(means), quantiles)
 
          # Generate the ensemble soil texture data based on the ensemble size (ens_n) defined in the settings
-         samples <- MCMCpack::rdirichlet(10000, alpha_est)
+         samples <- MCMCpack::rdirichlet(ens_n, alpha_est)
          colnames(samples) <-c("fraction_of_sand_in_soil","fraction_of_clay_in_soil","fraction_of_silt_in_soil")
-         samples_ens_new <-list(samples[sample(1:10000, ens_n), ]) %>% setNames(depths)
-         samples_ens <- append(samples_ens, samples_ens_new)
+         samples <-list(samples) %>% setNames(depths)
+         samples_ens <- append(samples_ens, samples)
       }
   
       # Generate soil parameter file for each one in ensemble soil texture data
@@ -221,4 +197,27 @@ soil_params_ensemble <- function(settings,sand,clay,silt,outdir,write_into_setti
           write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
        }
    }
+}
+
+# A function to reformat the nested list as inputs to "soil2netcdf" function
+reformat_soil_list <- function(samples_all_depth) {
+  # Define the fractions we want to extract
+  fractions <-
+    c("fraction_of_sand_in_soil",
+      "fraction_of_clay_in_soil",
+      "fraction_of_silt_in_soil")
+  
+  # Initialize a new list to store reformatted data
+  reformatted <-setNames(vector("list", length(fractions)), fractions)
+  
+  # Extract data for each fraction
+  for (fraction in fractions) {
+    reformatted[[fraction]] <-
+      unlist(lapply(samples_all_depth, function(depth_list) {
+        depth_list[[fraction]] # Extract the fraction value
+      })) %>% purrr::set_names(NULL)
+  }
+  # Combine depth into a single vector for readability
+  reformatted$soil_depth <- as.numeric(names(samples_all_depth))
+  return(reformatted)
 }

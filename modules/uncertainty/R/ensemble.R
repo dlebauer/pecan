@@ -274,7 +274,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
         dplyr::pull("tag")
       
     }else{
-      required_tags<-c("met","parameters")
+      required_tags<-c("met","parameters","soilinitcond")
       
     }
     
@@ -458,7 +458,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
                            settings = settings,
                            new.state = new.state[i, ], 
                            new.params = new.params[[i]], #new.params$`646`[[i]] for debugging
-                           inputs =list(met=list(path=inputs$samples[[i]])), 
+                           inputs =list(met=list(path=inputs$met$samples[[i]]),soilinitcond=list(path=inputs$soilinitcond$samples[[i]])), 
                            RENAME = rename)#for restart from previous model runs, not sharing the same outdir
       )
     }
