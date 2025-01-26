@@ -32,14 +32,16 @@ shp2gpkg <- function(input_shp, output_gpkg, layer_name = NULL, overwrite = TRUE
   is_geometry_valid <- st_is_valid(shapefile)
   total_geometries <- length(is_geometry_valid)
   n_invalid <- sum(!is_geometry_valid)
-  percent_invalid <- (n_invalid / total_geometries) * 100
   
-  # Report invalid geometry statistics
-  message("Total geometries: ", total_geometries)
-  message("Invalid geometries: ", n_invalid)
-  message("Percentage invalid: ", round(percent_invalid, 2), "%")
+  PEcAn.logger::logger.info("Total geometries: ", total_geometries)
   
-  if (n_invalid > 0) {
+  if(n_invalid > 0){
+    # Report invalid geometry statistics
+    PEcAn.logger::logger.info(n_invalid, 
+                              "(", round(percent_invalid, 2), "%)",
+                              "of geometries are invalid")
+    PEcAn.logger::logger.info(". Attempting to repair invalid geometries")
+
     # Attempt to repair invalid geometries
     repaired_shapefile <- st_make_valid(shapefile)
     is_repair_successful <- st_is_valid(repaired_shapefile)
@@ -49,9 +51,9 @@ shp2gpkg <- function(input_shp, output_gpkg, layer_name = NULL, overwrite = TRUE
     # Report repair results
     message("Repaired ", n_repaired, " geometries successfully.")
     if (n_remaining_invalid > 0) {
-      message("Could not repair ", n_remaining_invalid, " geometries. They will be excluded.")
+      PEcAn.logger::logger.warn("Could not repair ", n_remaining_invalid, " geometries. They will be excluded.")
     } else {
-      message("All geometries were repaired successfully.")
+      PEcAn.logger::logger.info("All geometries were repaired successfully.")
     }
     
     # Retain only valid geometries after repair
