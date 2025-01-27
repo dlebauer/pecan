@@ -22,32 +22,37 @@
 #' # Prevent overwriting existing layers
 #' shp2gpkg("data/roads.shp", "output/roads.gpkg", overwrite = FALSE)
 #'
-#' @importFrom sf st_read st_write
+#' @importFrom sf st_read st_write st_is_valid st_make_valid
 #' @export
 shp2gpkg <- function(input_shp, output_gpkg, layer_name = NULL, overwrite = TRUE) {
   # Load the Shapefile
   shapefile <- sf::st_read(input_shp, quiet = TRUE)
-  
+
   # Check validity of geometries
-  is_geometry_valid <- st_is_valid(shapefile)
+  is_geometry_valid <- sf::st_is_valid(shapefile)
   total_geometries <- length(is_geometry_valid)
   n_invalid <- sum(!is_geometry_valid)
-  
-  PEcAn.logger::logger.info("Total geometries: ", total_geometries)
-  
-  if(n_invalid > 0){
+  percent_invalid <- (n_invalid / total_geometries) * 100
+
+  # Log invalid geometry statistics
+
+  PEcAn.logger::logger.info("Total records in shapefile: ", total_geometries)
+
+  if (n_invalid > 0) {
     # Report invalid geometry statistics
-    PEcAn.logger::logger.info(n_invalid, 
-                              "(", round(percent_invalid, 2), "%)",
-                              "of geometries are invalid")
+    PEcAn.logger::logger.info(
+      n_invalid,
+      "(", round(percent_invalid, 2), "%)",
+      "of geometries are invalid"
+    )
     PEcAn.logger::logger.info(". Attempting to repair invalid geometries")
 
     # Attempt to repair invalid geometries
-    repaired_shapefile <- st_make_valid(shapefile)
-    is_repair_successful <- st_is_valid(repaired_shapefile)
+    repaired_shapefile <- sf::st_make_valid(shapefile)
+    is_repair_successful <- sf::st_is_valid(repaired_shapefile)
     n_repaired <- n_invalid - sum(!is_repair_successful)
     n_remaining_invalid <- sum(!is_repair_successful)
-    
+
     # Report repair results
     message("Repaired ", n_repaired, " geometries successfully.")
     if (n_remaining_invalid > 0) {
@@ -55,25 +60,25 @@ shp2gpkg <- function(input_shp, output_gpkg, layer_name = NULL, overwrite = TRUE
     } else {
       PEcAn.logger::logger.info("All geometries were repaired successfully.")
     }
-    
+
     # Retain only valid geometries after repair
     shapefile <- repaired_shapefile[is_repair_successful, ]
   }
-  
+
   # Determine layer name from input file if not provided
   if (is.null(layer_name)) {
     layer_name <- tools::file_path_sans_ext(basename(input_shp))
   }
-  
+
   # Write to GeoPackage
-  st_write(
-    shapefile, 
-    output_gpkg, 
-    layer = layer_name, 
-    delete_layer = overwrite, 
+  sf::st_write(
+    shapefile,
+    output_gpkg,
+    layer = layer_name,
+    delete_layer = overwrite,
     quiet = TRUE
   )
-  
+
   # Invisibly return the file path
   invisible(output_gpkg)
 }
