@@ -49,33 +49,42 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   # Read the Shapefile
   landiq_polygons <- sf::st_read(input_file, quiet = TRUE)
 
+  # Determine crop year from column name
+  crop_col <- grep("Crop[0-9]{4}", colnames(landiq_polygons), value = TRUE)
+  year <- gsub("Crop", "", crop_col)
+
   # Check required columns
-  required_cols <- c("Acres", "Crop2016", "Source", "Comments", "County", "geom")
+  required_cols <- c("Acres", crop_col, "Source", "Comments", "County", "geom")
   missing_cols <- setdiff(required_cols, colnames(landiq_polygons))
   if (length(missing_cols) > 0) {
     stop("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
   }
 
-  # Determine crop year from column name
-  crop_col <- grep("Crop[0-9]{4}", colnames(landiq_polygons), value = TRUE)
-  year <- gsub("Crop", "", crop_col)
-
   landiq_polygons <- landiq_polygons |>
     sf::st_transform(4326) |>
     dplyr::mutate(
-      id = digest::digest(geom, algo = "xxhash64"),
+      year = year,
       lon = sf::st_coordinates(sf::st_centroid(geom))[, "X"],
       lat = sf::st_coordinates(sf::st_centroid(geom))[, "Y"],
       area_ha = PEcAn.utils::ud_convert(Acres, "acre", "ha")
-    )
+    ) |>
+    #    If we want to use id instead of lat+lon as a unique identifier,
+    #    it should be done separately (for speed) and must be done rowwise
+    #    or else all values of id will be the same
+    #    dplyr::rowwise() |>
+    #    dplyr::mutate( # generate ids rowwise separately because rowwise geospatial operations are very slow
+    #      id = digest::digest(geom, algo = "xxhash64")
+    #      )  |>
+    dplyr::rename(county = County)
 
   # Process data for GeoPackage
   gpkg_data <- landiq_polygons |>
-    select(id, geom, lat, lon, area_ha)
+    dplyr::select(geom, lat, lon, area_ha, county)
 
   # Process data for CSV
   csv_data <- landiq_polygons |>
-    mutate(
+    tidyr::as_tibble() |>
+    dplyr::mutate(
       crop = .data[[crop_col]],
       pft = case_when(
         crop %in% c(
@@ -85,11 +94,13 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
           "Miscellaneous Subtropical Fruits", "Pomegranates"
         ) ~ "woody perennial crop",
         TRUE ~ paste0("no PFT for ", crop)
-      ),
+      )
+    ) |>
+    dplyr::rename(
       source = Source,
       notes = Comments
     ) |>
-    select(id, year, crop, pft, source, notes)
+    dplyr::select(lat, lon, year, crop, pft, source, notes)
 
   # Warn about crops without a PFT
   unassigned_pft <- csv_data |>
@@ -104,7 +115,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
 
   # Write outputs
   sf::st_write(gpkg_data, output_gpkg, delete_layer = TRUE, quiet = TRUE)
-  readr::write_csv(csv_data, output_csv, row.names = FALSE)
+  readr::write_csv(csv_data, output_csv)
 
   # Return paths to output files
   invisible(list(GeoPackage = output_gpkg, CSV = output_csv))
