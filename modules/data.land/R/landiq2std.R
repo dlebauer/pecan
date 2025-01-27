@@ -39,7 +39,7 @@
 landiq2std <- function(input_shp, output_gpkg, output_csv) {
   
   # Check input file format
-  if (!grepl(pattern = "\.shp$", input_shp)) {
+  if (!grepl(pattern = "\\.shp$", input_shp)) {
     stop("Input file must be a Shapefile (.shp).")
   }
   
