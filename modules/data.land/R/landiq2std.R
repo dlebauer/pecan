@@ -40,10 +40,13 @@
 landiq2std <- function(input_file, output_gpkg, output_csv) {
   # Check input file format
   if (grepl(pattern = "\\.shp$", input_file)) {
-    PEcAn.logger::logger.info("Converting Shapefile to GeoPackage.")
+    PEcAn.logger::logger.info(
+      "Converting Shapefile:", basename(input_file),
+      "to GeoPackage:", basename(output_gpkg)
+    )
     # read in, repair geometries, write out repaired geopackage
-    input_file <- gsub("shp$", "gpkg", input_file)
-    shp2gpkg(input_file, input_file, overwrite = TRUE)
+    shp2gpkg(input_file, output_gpkg, overwrite = TRUE)
+    input_file <- output_gpkg # now gpkg is input file
   }
 
   # Read the Shapefile
@@ -60,6 +63,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     stop("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
   }
 
+  # possible spedup by pre-computing lat and lon
   landiq_polygons <- landiq_polygons |>
     sf::st_transform(4326) |>
     dplyr::mutate(
@@ -68,18 +72,16 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
       lat = sf::st_coordinates(sf::st_centroid(geom))[, "Y"],
       area_ha = PEcAn.utils::ud_convert(Acres, "acre", "ha")
     ) |>
-    #    If we want to use id instead of lat+lon as a unique identifier,
-    #    it should be done separately (for speed) and must be done rowwise
-    #    or else all values of id will be the same
-    #    dplyr::rowwise() |>
-    #    dplyr::mutate( # generate ids rowwise separately because rowwise geospatial operations are very slow
-    #      id = digest::digest(geom, algo = "xxhash64")
-    #      )  |>
+    dplyr::rowwise() |>
+    dplyr::mutate( # generate ids rowwise separately because
+      # rowwise geospatial operations are very slow
+      id = digest::digest(geom, algo = "xxhash64")
+    ) |>
     dplyr::rename(county = County)
 
   # Process data for GeoPackage
   gpkg_data <- landiq_polygons |>
-    dplyr::select(geom, lat, lon, area_ha, county)
+    dplyr::select(id, geom, lat, lon, area_ha, county)
 
   # Process data for CSV
   csv_data <- landiq_polygons |>
@@ -100,7 +102,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
       source = Source,
       notes = Comments
     ) |>
-    dplyr::select(lat, lon, year, crop, pft, source, notes)
+    dplyr::select(id, lat, lon, year, crop, pft, source, notes)
 
   # Warn about crops without a PFT
   unassigned_pft <- csv_data |>
@@ -108,7 +110,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     distinct(crop, pft)
   if (nrow(unassigned_pft) > 0) {
     PEcAn.logger::logger.warn( # or should this be error?
-      "The following crops do not have a PFT assigned:\n",
+      "The following crops do not have a PFT assigned:",
       paste(unassigned_pft$crop, collapse = ", ")
     )
   }
