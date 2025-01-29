@@ -50,12 +50,11 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   }
 
   # Read the Shapefile
-  landiq_polygons <- sf::st_read(input_file, quiet = TRUE)
+  landiq_polygons <- sf::st_read(input_file, quiet = FALSE)
 
   # Determine crop year from column name
   crop_col <- grep("Crop[0-9]{4}", colnames(landiq_polygons), value = TRUE)
   year <- gsub("Crop", "", crop_col)
-
   # Check required columns
   required_cols <- c("Acres", crop_col, "Source", "Comments", "County", "geom")
   missing_cols <- setdiff(required_cols, colnames(landiq_polygons))
@@ -64,7 +63,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   }
 
   # possible spedup by pre-computing lat and lon
-  landiq_polygons <- landiq_polygons |>
+  landiq_polygons_updated <- landiq_polygons |>
     sf::st_transform(4326) |>
     dplyr::mutate(
       year = year,
@@ -80,11 +79,11 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     dplyr::rename(county = County)
 
   # Process data for GeoPackage
-  gpkg_data <- landiq_polygons |>
+  gpkg_data <- landiq_polygons_updated |>
     dplyr::select(id, geom, lat, lon, area_ha, county)
 
   # Process data for CSV
-  csv_data <- landiq_polygons |>
+  csv_data <- landiq_polygons_updated |>
     tidyr::as_tibble() |>
     dplyr::mutate(
       crop = .data[[crop_col]],
@@ -116,7 +115,12 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   }
 
   # Write outputs
-  sf::st_write(gpkg_data, output_gpkg, delete_layer = TRUE, quiet = TRUE)
+  file.remove(output_gpkg, output_csv)
+  sf::st_write(gpkg_data,
+    output_gpkg,
+    layer = "sites", # analogous to BETYdb table name
+    quiet = FALSE
+  )
   readr::write_csv(csv_data, output_csv)
 
   # Return paths to output files
