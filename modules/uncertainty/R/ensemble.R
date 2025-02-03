@@ -211,7 +211,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 ##' @export
 ##' @author David LeBauer, Carl Davidson, Hamze Dokoohaki
 write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, 
-                                   clean = FALSE, write.to.db = TRUE, restart = NULL, rename = FALSE) {
+                                   clean = FALSE, write.to.db = TRUE, restart = NULL, samples =NULL, rename = FALSE) {
   
   con <- NULL
   my.write.config <- paste("write.config.", model, sep = "")
@@ -277,10 +277,9 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
         dplyr::pull("tag")
       
     }else{
-      required_tags<-c("met","parameters","soilinitcond")
+      required_tags<-c("met","parameters")
       
     }
-    
     #now looking into the xml
     samp <- settings$ensemble$samplingspace
     #finding who has a parent
@@ -289,19 +288,21 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
     order <- names(samp)[lapply(parents, function(tr) which(names(samp) %in% tr)) %>% unlist()] 
     #new ordered sampling space
     samp.ordered <- samp[c(order, names(samp)[!(names(samp) %in% order)])]
-    #performing the sampling
-    samples<-list()
-    # For the tags specified in the xml I do the sampling
-    for(i in seq_along(samp.ordered)){
-      myparent<-samp.ordered[[i]]$parent # do I have a parent ?
-      #call the function responsible for generating the ensemble
-      samples[[names(samp.ordered[i])]] <- input.ens.gen(settings=settings,
+    if(is.null(samples)){
+       #performing the sampling
+       samples<-list()
+       # For the tags specified in the xml I do the sampling
+      for(i in seq_along(samp.ordered)){
+         myparent<-samp.ordered[[i]]$parent # do I have a parent ?
+         #call the function responsible for generating the ensemble
+         samples[[names(samp.ordered[i])]] <- input.ens.gen(settings=settings,
                                                          input=names(samp.ordered)[i],
                                                          method=samp.ordered[[i]]$method,
                                                          parent_ids=if( !is.null(myparent)) samples[[myparent]] # if I have parent then give me their ids - this is where the ordering matters making sure the parent is done before it's asked
       )
     }
-
+    }
+    
     # if there is a tag required by the model but it is not specified in the xml then I replicate n times the first element 
     required_tags%>%
       purrr::walk(function(r_tag){
@@ -336,6 +337,8 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
     if ( is.null(samp$parameters) )            samples$parameters$samples <- ensemble.samples %>% purrr::map(~.x[rep(1, settings$ensemble$size) , ])
     # This where we handle the parameters - ensemble.samples is already generated in run.write.config and it's sent to this function as arg - 
     if ( is.null(samples$parameters$samples) ) samples$parameters$samples <- ensemble.samples
+
+   
     #------------------------End of generating ensembles-----------------------------------
     # find all inputs that have an id
     inputs <- names(settings$run$inputs)
@@ -393,14 +396,15 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "site        : ", settings$run$site$name, "\n",
           "site  id    : ", format(settings$run$site$id, scientific = FALSE), "\n",
           "met data    : ", samples$met$samples[[i]], "\n",
+          "soil data   : ", samples$soilinitcond$samples[[i]], "\n",
           "start date  : ", settings$run$start.date, "\n",
           "end date    : ", settings$run$end.date, "\n",
           "hostname    : ", settings$host$name, "\n",
           "rundir      : ", file.path(settings$host$rundir, run.id), "\n",
           "outdir      : ", file.path(settings$host$outdir, run.id), "\n",
           file = file.path(settings$rundir, run.id, "README.txt"))
-      
       #changing the structure of input tag to what the models are expecting
+      save(samples,file=file.path(settings$rundir, run.id,"samples_input.Rdata"))
       for(input_i in seq_along(settings$run$inputs)){
         input_tag <- names(settings$run$inputs)[[input_i]]
         if (!is.null(samples[[input_tag]]))
@@ -466,7 +470,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
       )
     }
     params<-new.params
-    return(invisible(list(runs = data.frame(id=run.id), ensemble.id = ensemble.id, samples=list(met=inputs)
+    return(invisible(list(runs = data.frame(id=run.id), ensemble.id = ensemble.id, samples=list(met=inputs$met,soilinitcond=inputs$soilinitcond)
     )
     ))
   }

@@ -7,7 +7,7 @@
 ##' 
 ##' @param site_info A data frame of site info containing the BETYdb site ID, 
 ##' site name, latitude, and longitude, e.g. 
-##' (site_id, site_name, lat, lon)
+##' (site_id, lat, lon)
 ##' @param outdir  Provide the path to store the texture data file
 ##' @param verbose Provide progress feedback to the terminal? TRUE/FALSE
 ##' @return a data frame containing the soil texture data with columns "Depth", "Quantile", "Siteid", and "Value"
@@ -20,13 +20,7 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
   
   # A function to extract and save one type of soil texture data 
   download_and_extraction <- function(base_data_url, site_info, outdir) {
-    
-    if (future::supportsMulticore()) {
-      future::plan(future::multicore)
-    } else {
-      future::plan(future::multisession)
-    }
-    
+  
     if (is.null(site_info)) {
       PEcAn.logger::logger.error(
         "No site information found. Please provide a BETY DB site list containing at least the site id and PostGIS geometry\
@@ -35,7 +29,7 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
     }
     
     # Prepare site info for extraction
-    internal_site_info <- data.frame(site_info$site_id, site_info$site_name, site_info$lat,site_info$lon)
+    internal_site_info <- data.frame(site_info$site_id,site_info$lat,site_info$lon)
     #Create a variable to store mean and quantile of soil texture data for each soil depth
     soiltquant <- matrix(NA, nrow = 6, ncol = length(internal_site_info$site_info.lon) * 4)
     lonlat <-cbind(internal_site_info$site_info.lon, internal_site_info$site_info.lat)
@@ -49,22 +43,16 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
     data_tag <- c("_mean.vrt", "_Q0.05.vrt", "_Q0.5.vrt", "_Q0.95.vrt")
     name_tag <- expand.grid(depths, data_tag, stringsAsFactors = F) #find the combinations between data and depth tags.
     L <- split(as.data.frame(name_tag), seq(nrow(as.data.frame(name_tag))))#convert tags into lists.
-    
-    if ("try-error" %in% class(try(soilt_real <- L %>% furrr::future_map(function(l){
-      soilt_url <- paste0(base_data_url, l[[1]], l[[2]])
-      soilt_map <- terra::extract(terra::rast(soilt_url), p_reproj)
-      unlist(soilt_map[, -1])/10
-    }, .progress = T)))) {
-      soilt_real <- vector("list", length = length(L))
-      pb <- utils::txtProgressBar(min = 0, max = length(L), style = 3)
-      for (i in seq_along(L)) {
+   
+    soilt_real <- vector("list", length = length(L))
+    pb <- utils::txtProgressBar(min = 0, max = length(L), style = 3)
+    for (i in seq_along(L)) {
         l <- L[[i]]
         soilt_url <- paste0(base_data_url, l[[1]], l[[2]])
         soilt_map <- terra::extract(terra::rast(soilt_url), p_reproj)
         soilt_real[[i]] <- unlist(soilt_map[, -1])/10
         utils::setTxtProgressBar(pb, i)
       }
-    }
     
     for (dep in seq_along(depths)) {
       dep.ind <- which(grepl(depths[dep], name_tag[, 1]))
@@ -101,24 +89,21 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
     future::plan(future::multisession,workers=3)
   }
   
-  sand_data_url <-
-    "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_"
-  clay_data_url <-
-    "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/clay/clay_"
-  silt_data_url <-
-    "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/silt/silt_"
-  
+  data_url<-list(sand = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_",
+                 clay = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/clay/clay_",
+                 silt = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/silt/silt_")
+
   data_sources <- list(
     list(
-      url = sand_data_url,
+      url = data_url$sand,
       save_path = paste0(outdir, "sand_percent.rds")
     ),
     list(
-      url = clay_data_url,
+      url = data_url$clay,
       save_path = paste0(outdir, "clay_percent.rds")
     ),
     list(
-      url = silt_data_url,
+      url = data_url$silt,
       save_path = paste0(outdir, "silt_percent.rds")
     )
   )

@@ -9,7 +9,7 @@ soilgrids_texture_extraction(site_info, outdir = NULL, verbose = TRUE)
 \arguments{
 \item{site_info}{A data frame of site info containing the BETYdb site ID, 
 site name, latitude, and longitude, e.g. 
-(site_id, site_name, lat, lon)}
+(site_id, lat, lon)}
 
 \item{outdir}{Provide the path to store the texture data file}
 

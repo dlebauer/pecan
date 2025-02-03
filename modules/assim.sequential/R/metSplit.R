@@ -33,17 +33,17 @@ metSplit <- function(conf.settings, inputs, settings, model, no_split = FALSE, o
       library(paste0("PEcAn.",model), character.only = TRUE)
       
       # Initialize inputs.split with inputs to keep the sub-list of soil parameters "soilinitcond"
-      inputs.split <- inputs
+      inputs.split <- list()
       if (!no_split) {
         for (i in seq_len(nens)) {
           #---------------- model specific split inputs
-          inputs.split$met$samples[i] <- do.call(
+          inputs.split$samples[i] <- do.call(
             my.split_inputs,
             args = list(
               settings = settings,
               start.time = (lubridate::ymd_hms(start.time, truncated = 3) + lubridate::second(lubridate::hms("00:00:01"))),
               stop.time =   lubridate::ymd_hms(stop.time, truncated = 3),
-              inputs = inputs$met$samples[[i]])
+              inputs = inputs$samples[[i]])
           )
         }
       } else{

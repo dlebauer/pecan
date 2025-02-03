@@ -12,6 +12,7 @@ write.ensemble.configs(
   clean = FALSE,
   write.to.db = TRUE,
   restart = NULL,
+  samples = NULL,
   rename = FALSE
 )
 }

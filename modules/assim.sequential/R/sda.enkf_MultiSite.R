@@ -358,23 +358,31 @@ sda.enkf.multisite <- function(settings,
       #sample met and soil parameter ensemble members 
       #TODO: incorporate Phyllis's restart work
       #      sample all inputs specified in the settings$ensemble not just met
-      input_name <- c("met","soilinitcond")
-      inputs <- list()
-      new_inputs <- list()
-      for (i_input in seq_along(input_name)){
-       inputs[[input_name[i_input]]]<-PEcAn.settings::papply(conf.settings,function(setting) {
-         PEcAn.uncertainty::input.ens.gen(
-           settings = setting,
-           input = input_name[i_input],
-           method = setting$ensemble$samplingspace[[input_name[i_input]]]$method,
-           parent_ids = NULL 
-          )
-        })
-       #reformat the input list to make the multisite setting as the first sub-category 
-       for (setting_name in names(inputs[[input_name[i_input]]])) {
-       new_inputs[[setting_name]][[input_name[i_input]]] <- inputs[[input_name[i_input]]][[setting_name]]
-       }
-      } 
+  
+  
+   #now looking into the xml
+   samp <- conf.settings$ensemble$samplingspace
+   #finding who has a parent
+   parents <- lapply(samp,'[[', 'parent')
+   #order parents based on the need of who has to be first
+   order <- names(samp)[lapply(parents, function(tr) which(names(samp) %in% tr)) %>% unlist()] 
+   #new ordered sampling space
+   samp.ordered <- samp[c(order, names(samp)[!(names(samp) %in% order)])]
+   #performing the sampling
+   inputs <- vector("list", length(conf.settings))
+   # For the tags specified in the xml I do the sampling
+   for (s in seq_along(conf.settings)){
+      if (is.null(inputs[[s]])) {
+        inputs[[s]] <- list() 
+      }
+     for (i in seq_along(samp.ordered)){
+         #call the function responsible for generating the ensemble
+        inputs[[s]][[names(samp.ordered)[i]]] <- input.ens.gen(settings=conf.settings[[s]],
+                                                             input=names(samp.ordered)[i],
+                                                             method=samp.ordered[[i]]$method,
+                                                             parent_ids=NULL)
+      }
+    }
       
 
   ###------------------------------------------------------------------------------------------------###
@@ -390,8 +398,41 @@ sda.enkf.multisite <- function(settings,
       if (t>1){
         #for next time step split the met if model requires
         #-Splitting the input for the models that they don't care about the start and end time of simulations and they run as long as their met file.
-        inputs.split <- list()
-        inputs.split <- metSplit(conf.settings, new_inputs, settings, model, no_split = FALSE, obs.times, t, nens, restart_flag = FALSE, my.split_inputs)
+        #set start and end date for splitting met
+        start.time = obs.times[t - 1] #always start timestep before
+        
+        if(restart_flag){
+          stop.time = settings$run$site$met.end
+        }else{
+          stop.time = obs.times[t]
+        }
+        
+        
+        #-Splitting the input for the models that they don't care about the start and end time of simulations and they run as long as their met file.
+        inputs.split <- 
+          furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")), inputs, model), function(settings, inputs, model) {
+            # Loading the model package - this is required bc of the furrr
+            library(paste0("PEcAn.",model), character.only = TRUE)
+            
+            inputs.split <- inputs
+            if (!no_split) {
+              for (i in seq_len(nens)) {
+                #---------------- model specific split inputs
+                inputs.split$met$samples[i] <- do.call(
+                  my.split_inputs,
+                  args = list(
+                    settings = settings,
+                    start.time = (lubridate::ymd_hms(start.time, truncated = 3) + lubridate::second(lubridate::hms("00:00:01"))),
+                    stop.time =   lubridate::ymd_hms(stop.time, truncated = 3),
+                    inputs = inputs$met$samples[[i]])
+                )
+              }
+            } else{
+              inputs.split <- inputs
+            }
+            inputs.split
+          })
+        
         
         
         #---------------- setting up the restart argument for each site separately and keeping them in a list
@@ -425,9 +466,8 @@ sda.enkf.multisite <- function(settings,
         X <- X
       }else{
         if (control$debug) browser()
-        out.configs <- conf.settings %>%
-          `class<-`(c("list")) %>%
-          furrr::future_map2(restart.list, function(settings, restart.arg) {
+        
+        out.configs <-furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")),restart.list, inputs), function(settings, restart.arg,inputs) {
             # Loading the model package - this is required bc of the furrr
             library(paste0("PEcAn.",settings$model$type), character.only = TRUE)
             # wrtting configs for each settings - this does not make a difference with the old code
@@ -438,6 +478,7 @@ sda.enkf.multisite <- function(settings,
               model = settings$model$type,
               write.to.db = settings$database$bety$write,
               restart = restart.arg,
+              samples=inputs,
               rename = TRUE
             )
           }) %>%
@@ -548,12 +589,13 @@ sda.enkf.multisite <- function(settings,
           if (is.null(control$MCMC.args)) {
             MCMC.args <- list(niter = 1e5,
                               nthin = 10,
-                              nchain = 3,
+                              nchain = 1,
                               nburnin = 5e4)
           } else {
             MCMC.args <- control$MCMC.args
           }
           #running analysis function.
+          save(X,file=file.path(settings$outdir,"X.Rdata"))
           enkf.params[[obs.t]] <- analysis_sda_block(settings, block.list.all, X, obs.mean, obs.cov, t, nt, MCMC.args, pre_enkf_params)
           enkf.params[[obs.t]] <- c(enkf.params[[obs.t]], RestartList = list(restart.list %>% stats::setNames(site.ids)))
           block.list.all <- enkf.params[[obs.t]]$block.list.all
