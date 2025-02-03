@@ -11,6 +11,8 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 
 ### Fixed
 - updated github action to build docker images
+- Refactored `SDA_downscale` and `SDA_downscale_preprocess` to allow direct use of R objects in addition to file paths. Added tests for these functions.
+- Added helper function `.convert_coords_to_sf()` for consistent conversion of data with lat lon data to `sf` pts.
 
 ### Changed
 
