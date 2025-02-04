@@ -16,11 +16,11 @@ SDA_downscale(
 \arguments{
 \item{preprocessed}{List. Preprocessed data returned as an output from the SDA_downscale_preprocess function.}
 
-\item{date}{Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within file supplied to 'preprocessed' from the 'data_path'.}
+\item{date}{Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within file supplied to 'preprocessed' from the 'ensemble_data'.}
 
-\item{carbon_pool}{Character. Carbon pool of interest. Name must match carbon pool name found within file supplied to 'preprocessed' from the 'data_path'.}
+\item{carbon_pool}{Character. Carbon pool of interest. Name must match carbon pool name found within file supplied to 'preprocessed' from the 'ensemble_data'.}
 
-\item{covariates}{SpatRaster stack. Used as predictors in downscaling. Layers within stack should be named. Recommended that this stack be generated using 'covariates' instructions in assim.sequential/inst folder}
+\item{covariates}{SpatRaster stack or sf object. Used as predictors in downscaling. If providing a raster stack, layers should be named. If providing an sf object, predictor attributes should be present.}
 
 \item{model_type}{Character. Either "rf" for Random Forest or "cnn" for Convolutional Neural Network. Default is Random Forest.}
 
