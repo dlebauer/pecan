@@ -59,7 +59,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   required_cols <- c("Acres", crop_col, "Source", "Comments", "County", "geom")
   missing_cols <- setdiff(required_cols, colnames(landiq_polygons))
   if (length(missing_cols) > 0) {
-    stop("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
+    PEcAn.logger::logger.error("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
   }
 
   # possible spedup by pre-computing lat and lon
