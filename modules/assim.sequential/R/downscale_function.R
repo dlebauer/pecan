@@ -162,7 +162,7 @@ SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_typ
     # For raster objects, convert the sf coordinates to SpatVector before extraction
     predictors <- as.data.frame(terra::extract(covariates, terra::vect(site_coordinates_sf), ID = FALSE))
   } else if (inherits(covariates, "sf")) {
-    # For sf objects, perform a spatial join using st_intersects and then drop the geometry column
+    # For sf objects, spatial join
     predictors <- sf::st_drop_geometry(sf::st_join(site_coordinates_sf, covariates, join = sf::st_intersects))
   } else {
     stop("Unsupported covariates object. Must be a SpatRaster or an sf object.")
