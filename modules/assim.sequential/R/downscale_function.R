@@ -74,10 +74,10 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
     message("Number of rows in site coordinates does not match the number of rows in carbon data.")
     if (nrow(site_coordinates) > nrow(carbon_data)) {
       message("Truncating site coordinates to match carbon data rows.")
-      site_coordinates <- site_coordinates[1:nrow(carbon_data), ]
+      site_coordinates <- site_coordinates[seq_len(nrow(carbon_data)), ]
     } else {
       message("Truncating carbon data to match site coordinates rows.")
-      carbon_data <- carbon_data[1:nrow(site_coordinates), ]
+      carbon_data <- carbon_data[seq_len(nrow(site_coordinates)), ]
     }
   }
 
@@ -177,7 +177,7 @@ SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_typ
   if (!is.null(seed)) {
     set.seed(seed) # Only set seed if provided
   }
-  sample <- sample(1:nrow(full_data), size = round(0.75 * nrow(full_data)))
+  sample <- sample(seq_len(nrow(full_data)), size = round(0.75 * nrow(full_data)))
   train_data <- full_data[sample, ]
   test_data <- full_data[-sample, ]
 
@@ -252,7 +252,7 @@ SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_typ
         fold_models <- list()
         for (bag in 1:num_bags) {
           # Create bootstrap sample
-          bootstrap_indices <- sample(1:nrow(x_train_fold), size = nrow(x_train_fold), replace = TRUE)
+          bootstrap_indices <- sample(seq_len(x_train_fold), size = nrow(x_train_fold), replace = TRUE)
           x_train_bag <- x_train_fold[bootstrap_indices, ]
           y_train_bag <- y_train_fold[bootstrap_indices]
 
@@ -397,7 +397,7 @@ SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_typ
 SDA_downscale_metrics <- function(downscale_output, carbon_pool) {
   metrics <- list()
 
-  for (i in 1:length(downscale_output$data)) {
+  for (i in seq_along(downscale_output$data)) {
     actual <- downscale_output$data[[i]]$testing[[paste0(carbon_pool, "_ens", i)]]
     predicted <- downscale_output$predictions[[i]]
 
