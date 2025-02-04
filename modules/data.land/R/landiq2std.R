@@ -108,7 +108,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     filter(grepl("no PFT for", pft)) |>
     distinct(crop, pft)
   if (nrow(unassigned_pft) > 0) {
-    PEcAn.logger::logger.warn( # or should this be error?
+    PEcAn.logger::logger.warn( 
       "The following crops do not have a PFT assigned:",
       paste(unassigned_pft$crop, collapse = ", ")
     )
