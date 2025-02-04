@@ -59,7 +59,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   required_cols <- c("Acres", crop_col, "Source", "Comments", "County", "geom")
   missing_cols <- setdiff(required_cols, colnames(landiq_polygons))
   if (length(missing_cols) > 0) {
-    stop("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
+    PEcAn.logger::logger.error("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
   }
 
   # possible spedup by pre-computing lat and lon
@@ -108,7 +108,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     filter(grepl("no PFT for", pft)) |>
     distinct(crop, pft)
   if (nrow(unassigned_pft) > 0) {
-    PEcAn.logger::logger.warn( # or should this be error?
+    PEcAn.logger::logger.warn( 
       "The following crops do not have a PFT assigned:",
       paste(unassigned_pft$crop, collapse = ", ")
     )
