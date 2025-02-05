@@ -6,7 +6,7 @@
 \usage{
 SDA_downscale(
   preprocessed,
-  date,
+  date = NULL,
   carbon_pool,
   covariates,
   model_type = "rf",
@@ -16,7 +16,7 @@ SDA_downscale(
 \arguments{
 \item{preprocessed}{List. Preprocessed data returned as an output from the SDA_downscale_preprocess function.}
 
-\item{date}{Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within file supplied to 'preprocessed' from the 'ensemble_data'.}
+\item{date}{*Deprecated*. This argument has never been used and will be removed after 2026-04-01}
 
 \item{carbon_pool}{Character. Carbon pool of interest. Name must match carbon pool name found within file supplied to 'preprocessed' from the 'ensemble_data'.}
 

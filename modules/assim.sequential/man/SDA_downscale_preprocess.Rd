@@ -9,7 +9,7 @@ SDA_downscale_preprocess(ensemble_data, site_coords, date, carbon_pool)
 \arguments{
 \item{ensemble_data}{Character or list. Either a file path to an `.rds` file containing ensemble data, or an in-memory list where each element is a data.frame indexed by date.}
 
-\item{date}{Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within the file or object supplied to 'ensemble_data'.}
+\item{date}{Date. The date for the run, must be a year within `ensemble_data`.}
 
 \item{carbon_pool}{Character. Carbon pool of interest. Name must match the carbon pool name found within the file or object supplied to 'ensemble_data'.}
 
