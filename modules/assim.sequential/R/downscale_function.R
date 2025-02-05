@@ -8,7 +8,7 @@
 ##'   - A file path to a `.csv` containing site coordinates with columns `"id"`, `"lat"`, and `"lon"`.
 ##'   - A `data.frame` with the same structure.
 ##'   - An `sf` object with point geometries.
-##' @param date Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within the file or object supplied to 'ensemble_data'.
+##' @param date Date. The date for the run, must be a year within `ensemble_data`.
 ##' @param carbon_pool Character. Carbon pool of interest. Name must match the carbon pool name found within the file or object supplied to 'ensemble_data'.
 ##' @details This function ensures that the specified date and carbon pool are present in the input data. It also checks the validity of the site coordinates and aligns the number of rows between site coordinates and carbon data.
 ##'
@@ -30,30 +30,6 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
     site_coordinates <- site_coords
   }
 
-  # Convert input_data names to Date objects
-  input_date_names <- lubridate::ymd(names(input_data))
-  names(input_data) <- input_date_names
-
-  # Convert the input date to a Date object
-  standard_date <- lubridate::ymd(date)
-
-  # Ensure the date exists in the input data
-  if (!standard_date %in% input_date_names) {
-    stop(paste("Date", date, "not found in the input data."))
-  }
-
-  # Extract the carbon data for the specified focus year
-  index <- which(input_date_names == standard_date)
-  data <- input_data[[index]]
-
-  # Ensure the carbon pool exists in the input data
-  if (!carbon_pool %in% names(data)) {
-    stop(paste("Carbon pool", carbon_pool, "not found in the input data."))
-  }
-
-  carbon_data <- as.data.frame(t(data[which(names(data) == carbon_pool)]))
-  names(carbon_data) <- paste0("ensemble", seq(ncol(carbon_data)))
-
   # If sf object, convert to data.frame with 'lon' and 'lat'
   if (inherits(site_coordinates, "sf")) {
     lonlats <- sf::st_coordinates(site_coordinates) |>
@@ -68,6 +44,32 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
   if (!all(c("lon", "lat") %in% names(site_coordinates))) {
     stop("Site coordinates must contain 'lon' and 'lat' columns.")
   }
+
+  # Convert input_data names to Date objects
+  input_date_names <- lubridate::ymd(names(input_data))
+  names(input_data) <- input_date_names
+
+  # Ensure 'date' is a Date object, if not, convert
+  if (!inherits(date, "Date")) {
+    standard_date <- lubridate::ymd(date)
+  }
+
+  # Ensure the date exists in the input data
+  if (!standard_date %in% input_date_names) {
+    stop(paste("Date", standard_date, "not found in the input data."))
+  }
+
+  # Extract the carbon data for the specified focus year
+  index <- which(input_date_names == standard_date)
+  data <- input_data[[index]]
+
+  # Ensure the carbon pool exists in the input data
+  if (!carbon_pool %in% names(data)) {
+    stop(paste("Carbon pool", carbon_pool, "not found in the input data."))
+  }
+
+  carbon_data <- as.data.frame(t(data[which(names(data) == carbon_pool)]))
+  names(carbon_data) <- paste0("ensemble", seq(ncol(carbon_data)))
 
   # Ensure the number of rows in site coordinates matches the number of rows in carbon data
   if (nrow(site_coordinates) != nrow(carbon_data)) {
@@ -140,7 +142,7 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
 ##' @author Joshua Ploshay, Sambhav Dixit
 ##'
 ##' @param preprocessed List. Preprocessed data returned as an output from the SDA_downscale_preprocess function.
-##' @param date Date. If SDA site run, format is yyyy/mm/dd; if NEON, yyyy-mm-dd. Restricted to years within file supplied to 'preprocessed' from the 'ensemble_data'.
+##' @param date *Deprecated*. This argument has never been used and will be removed after 2026-04-01
 ##' @param carbon_pool Character. Carbon pool of interest. Name must match carbon pool name found within file supplied to 'preprocessed' from the 'ensemble_data'.
 ##' @param covariates SpatRaster stack or sf object. Used as predictors in downscaling. If providing a raster stack, layers should be named. If providing an sf object, predictor attributes should be present.
 ##' @param model_type Character. Either "rf" for Random Forest or "cnn" for Convolutional Neural Network. Default is Random Forest.
@@ -151,7 +153,14 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
 ##'
 ##' @return A list containing the training and testing data sets, models, predicted maps for each ensemble member, and predictions for testing data.
 
-SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_type = "rf", seed = NULL) {
+SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, model_type = "rf", seed = NULL) {
+  if (!missing(date)) {
+    ## If you see this and it is after 2026-04-01, please remove
+    #    1. line starting with ##' @param date
+    #    2. date = NULL from function call
+    #    3. this conditional starting with if (!missing(date)) and ending after the warning below
+    PEcAn.logger::logger.warn("'date' argument is not used and will be removed on or after 2026-04-01. It is currently ignored.", call. = FALSE)
+  }
   carbon_data <- preprocessed$carbon_data
 
   # Convert site coordinates to an sf object using the helper function
@@ -167,6 +176,12 @@ SDA_downscale <- function(preprocessed, date, carbon_pool, covariates, model_typ
   } else {
     stop("Unsupported covariates object. Must be a SpatRaster or an sf object.")
   }
+
+  # Convert the input date to Date object
+  if (!inherits(date, "Date")) {
+    standard_date <- lubridate::ymd(date)
+  }
+
   # Dynamically get covariate names
   covariate_names <- names(predictors)
 
