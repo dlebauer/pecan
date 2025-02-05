@@ -3,7 +3,7 @@
 #' CSV file with attributes
 #'
 #' This function reads a LandIQ crop map shapefile downloaded from
-#' https://www.landiq.com/land-use-mapping and processes the data into
+#' https://data.cnra.ca.gov/dataset/statewide-crop-mapping and processes the data into
 #' a standardized GeoPackage and CSV format.
 #'
 #' @param input_file Character. Path to the input Shapefile
