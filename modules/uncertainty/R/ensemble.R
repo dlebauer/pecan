@@ -336,8 +336,6 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
     if ( is.null(samp$parameters) )            samples$parameters$samples <- ensemble.samples %>% purrr::map(~.x[rep(1, settings$ensemble$size) , ])
     # This where we handle the parameters - ensemble.samples is already generated in run.write.config and it's sent to this function as arg - 
     if ( is.null(samples$parameters$samples) ) samples$parameters$samples <- ensemble.samples
-
-   
     #------------------------End of generating ensembles-----------------------------------
     # find all inputs that have an id
     inputs <- names(settings$run$inputs)

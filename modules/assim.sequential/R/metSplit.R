@@ -31,8 +31,7 @@ metSplit <- function(conf.settings, inputs, settings, model, no_split = FALSE, o
     furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")), inputs, model), function(settings, inputs, model) {
       # Loading the model package - this is required bc of the furrr
       library(paste0("PEcAn.",model), character.only = TRUE)
-      
-      # Initialize inputs.split with inputs to keep the sub-list of soil parameters "soilinitcond"
+
       inputs.split <- list()
       if (!no_split) {
         for (i in seq_len(nens)) {

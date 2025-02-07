@@ -20,11 +20,6 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
   
   ### WRITE *.clim
   template.clim <- settings$run$inputs$met$path  ## read from settings
-  if (!is.null(restart)){
-  cat(paste0("Length of template.clim when t>1,",length(template.clim)), file = file.path(settings$rundir, run.id, "README2.txt"))
-  }else{
-  cat(paste0("Length of template.clim when t=1,",length(template.clim)), file = file.path(settings$rundir, run.id, "README3.txt"))
-  }
   if (!is.null(inputs)) {
     ## override if specified in inputs
     if ("met" %in% names(inputs)) {
