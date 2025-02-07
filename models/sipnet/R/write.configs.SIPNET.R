@@ -20,7 +20,11 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
   
   ### WRITE *.clim
   template.clim <- settings$run$inputs$met$path  ## read from settings
-  
+  if (!is.null(restart)){
+  cat(paste0("Length of template.clim when t>1,",length(template.clim)), file = file.path(settings$rundir, run.id, "README2.txt"))
+  }else{
+  cat(paste0("Length of template.clim when t=1,",length(template.clim)), file = file.path(settings$rundir, run.id, "README3.txt"))
+  }
   if (!is.null(inputs)) {
     ## override if specified in inputs
     if ("met" %in% names(inputs)) {
@@ -469,33 +473,29 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     if (!is.null(inputs)) {
       ## override if specified in inputs
       if ("soilinitcond" %in% names(inputs)) {
-        template.soilinit <- inputs$soilinit$path
+        template.soilinit <- inputs$soilinitcond$path
       }
     }
     soil_IC_list <- PEcAn.data.land::pool_ic_netcdf2list(template.soilinit)
     # Calculate the thickness of soil layers based on the assumption that the depth values are at bottoms and the first layer top is at 0
     if ("depth" %in% names(soil_IC_list$dims)) {
       thickness<-c(soil_IC_list$dims$depth[1],diff(soil_IC_list$dims$depth))
-    }
-    #SoilWHC
-    if ("depth" %in% names(soil_IC_list$dims) && "volume_fraction_of_water_in_soil_at_saturation" %in% names(soil_IC_list$vals)) {
-      # Calculate the soilWHC for the whole soil profile in cm
-      soilWHC_total <- sum(unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])*thickness)
-      param[which(param[, 1] == "soilWHC"), 2] <- soilWHC_total
-    #LitterWHC
-      param[which(param[, 1] == "litterWHC"), 2] <- soilWHC_total
-    }
-    if ("depth" %in% names(soil_IC_list$dims) && "soil_hydraulic_conductivity_at_saturation" %in% names(soil_IC_list$vals)) {
-      # Calculate the soil_hydraulic_conductivity for the whole soil profile (soilHC_total) if vertical flow dominates for
-      # unsaturated conditions or in deep, well-drained profiles. If horizontal flow dominates such as for 
-      # saturated conditions or where barriers to vertical flow exist, the overall conductivity is the 
-      # weighted arithmetic mean based on the proportion of the total thickness each layer represents as:
-      # soilHC_total <- sum(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])*thickness)/sum(thickness)
-      soilHC_total <- sum(thickness)/sum(thickness/(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])))
-      #litwaterDrainrate
-      param[which(param[, 1] == "litWaterDrainRate"), 2] <- soilHC_total
-      }
-    }
+      #SoilWHC
+      if ("volume_fraction_of_water_in_soil_at_saturation" %in% names(soil_IC_list$vals)) {
+         # Calculate the soilWHC for the whole soil profile in cm
+         soilWHC_total <- sum(unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])*thickness)
+         param[which(param[, 1] == "soilWHC"), 2] <- soilWHC_total
+         #LitterWHC in cm (top soil layer)
+         param[which(param[, 1] == "litterWHC"), 2] <- unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])[1]*thickness[1]
+       }
+      if ("soil_hydraulic_conductivity_at_saturation" %in% names(soil_IC_list$vals)) {
+         #litwaterDrainrate in cm/day
+         param[which(param[, 1] == "litWaterDrainRate"), 2] <- unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1]*100/(3600*24)
+       }
+    }else{
+      PEcAn.logger::logger.warn("No depth info was found in the soil file. Please check whether the parameters are for the whole profile")
+       }
+  }   
   if (!is.null(IC)) {
     ic.names <- names(IC)
     ## plantWoodInit gC/m2

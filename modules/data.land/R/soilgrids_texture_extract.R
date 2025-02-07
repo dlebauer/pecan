@@ -5,6 +5,21 @@
 ##' @title soilgrids_texture_extraction
 ##' @name soilgrids_texture_extraction
 ##' 
+##' @param data_paths A list containing the data (either virtual raster files or local file folders) and output path for all types of SoilGrids texture data
+##'  e.g. data_paths <- list(
+##'   list(
+##'      url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_",
+##'      local = NULL,
+##'      save_path = paste0(outdir, "sand_percent.rds")),
+##'   list(
+##'      url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/clay/clay_",
+##'      local = NULL,
+##'      save_path = paste0(outdir, "clay_percent.rds")),
+##'   list(
+##'      url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/silt/silt_",
+##'      local = NULL,
+##'      save_path = paste0(outdir, "silt_percent.rds")))
+
 ##' @param site_info A data frame of site info containing the BETYdb site ID, 
 ##' site name, latitude, and longitude, e.g. 
 ##' (site_id, lat, lon)
@@ -16,11 +31,16 @@
 ##' @author Qianyu Li
 ##' @importFrom magrittr %>%
 
-soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
+soilgrids_texture_extraction <- function(data_paths, site_info, outdir=NULL, verbose=TRUE){
   
-  # A function to extract and save one type of soil texture data 
-  download_and_extraction <- function(base_data_url, site_info, outdir) {
-  
+  # A function to extract and save one type of soil texture data
+  download_and_extraction <- function(base_data, site_info) {
+    #choose between virtual raster files or local files
+    if (!is.null (base_data$url)) {
+      vrt.flag <- TRUE
+    } else {
+      vrt.flag <- FALSE
+    }
     if (is.null(site_info)) {
       PEcAn.logger::logger.error(
         "No site information found. Please provide a BETY DB site list containing at least the site id and PostGIS geometry\
@@ -35,50 +55,59 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
     lonlat <-cbind(internal_site_info$site_info.lon, internal_site_info$site_info.lat)
     depths <-c("0-5cm", "5-15cm", "15-30cm", "30-60cm", "60-100cm", "100-200cm")
     
-    # Reproject locations to soilgrids projection
-    # Soilgrids data is using Homolosine projection https://www.isric.org/explore/soilgrids/faq-soilgrids
-    p <-terra::vect(lonlat, crs = "+proj=longlat +datum=WGS84") # Users need to provide lon/lat
-    newcrs <- "+proj=igh +datum=WGS84 +no_defs +towgs84=0,0,0"
-    p_reproj <- terra::project(p, newcrs) # Transform the point vector to data with Homolosine projection
-    data_tag <- c("_mean.vrt", "_Q0.05.vrt", "_Q0.5.vrt", "_Q0.95.vrt")
-    name_tag <- expand.grid(depths, data_tag, stringsAsFactors = F) #find the combinations between data and depth tags.
-    L <- split(as.data.frame(name_tag), seq(nrow(as.data.frame(name_tag))))#convert tags into lists.
-   
-    soilt_real <- vector("list", length = length(L))
-    pb <- utils::txtProgressBar(min = 0, max = length(L), style = 3)
-    for (i in seq_along(L)) {
+    p <-terra::vect(lonlat, crs = "+proj=longlat +datum=WGS84") # the projection for sites with lon/lat is WGS84
+    if (vrt.flag) {
+       # Reproject locations to soilgrids projection
+       # Soilgrids data is using Homolosine projection https://www.isric.org/explore/soilgrids/faq-soilgrids
+        newcrs <- "+proj=igh +datum=WGS84 +no_defs +towgs84=0,0,0"
+        p_reproj <- terra::project(p, newcrs) # Transform the point vector to data with Homolosine projection
+        data_tag <- c("_mean.vrt", "_Q0.05.vrt", "_Q0.5.vrt", "_Q0.95.vrt")
+       } else {
+        data_tag <- c("_mean.tif", "_Q0.05.tif", "_Q0.5.tif", "_Q0.95.tif")  
+       }
+     name_tag <- expand.grid(depths, data_tag, stringsAsFactors = F) #find the combinations between data and depth tags.
+     L <- split(as.data.frame(name_tag), seq(nrow(as.data.frame(name_tag))))#convert tags into lists.
+     soilt_real <- vector("list", length = length(L))
+     pb <- utils::txtProgressBar(min = 0, max = length(L), style = 3)
+     for (i in seq_along(L)) {
         l <- L[[i]]
-        soilt_url <- paste0(base_data_url, l[[1]], l[[2]])
-        soilt_map <- terra::extract(terra::rast(soilt_url), p_reproj)
-        soilt_real[[i]] <- unlist(soilt_map[, -1])/10
-        utils::setTxtProgressBar(pb, i)
-      }
+        if (vrt.flag) {
+          soilt <- paste0(base_data$url, l[[1]], l[[2]]) #e.g. "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_0-5cm_mean.vrt"
+          soilt_map <- terra::extract(terra::rast(soilt), p_reproj)
+        } else {
+          #assume the projection of tif file is already WGS84
+          soilt <- paste0(base_data$local, l[[1]], l[[2]])
+          soilt_map <- terra::extract(terra::rast(soilt), p)
+        }
+          soilt_real[[i]] <- unlist(soilt_map[, -1])/10
+          utils::setTxtProgressBar(pb, i)
+        }
     
-    for (dep in seq_along(depths)) {
-      dep.ind <- which(grepl(depths[dep], name_tag[, 1]))
-      soiltquant[dep, ] <- soilt_real[dep.ind] %>% unlist
-    }
+     for (dep in seq_along(depths)) {
+         dep.ind <- which(grepl(depths[dep], name_tag[, 1]))
+         soiltquant[dep, ] <- soilt_real[dep.ind] %>% unlist
+       }
     
     
-    # Parse extracted data and prepare for output
-    quantile_name <-c(paste("Mean_", site_info$site_id, sep = ""),paste("0.05_", site_info$site_id, sep = ""),paste("0.5_", site_info$site_id, sep = ""),paste("0.95_", site_info$site_id, sep = ""))
-    colnames(soiltquant) <- quantile_name
-    soilt_dep <- cbind(soiltquant, depths)
-    soilt_df <- tidyr::pivot_longer(as.data.frame(soilt_dep),cols = tidyselect::all_of(quantile_name),names_to = c("Quantile", "Siteid"),names_sep = "_")
-    # Remove NA
-    soilt_df <- stats::na.omit(soilt_df)
-    colnames(soilt_df) <- c("Depth", "Quantile", "Siteid", "Value")
-    soilt_df$Value<-as.numeric(soilt_df$Value)
+     # Parse extracted data and prepare for output
+     quantile_name <-c(paste("Mean_", site_info$site_id, sep = ""),paste("0.05_", site_info$site_id, sep = ""),paste("0.5_", site_info$site_id, sep = ""),paste("0.95_", site_info$site_id, sep = ""))
+     colnames(soiltquant) <- quantile_name
+     soilt_dep <- cbind(soiltquant, depths)
+     soilt_df <- tidyr::pivot_longer(as.data.frame(soilt_dep),cols = tidyselect::all_of(quantile_name),names_to = c("Quantile", "Siteid"),names_sep = "_")
+     # Remove NA
+     soilt_df <- stats::na.omit(soilt_df)
+     colnames(soilt_df) <- c("Depth", "Quantile", "Siteid", "Value")
+     soilt_df$Value<-as.numeric(soilt_df$Value)
     
-    if (!is.null(outdir)) {
-      PEcAn.logger::logger.info(paste0("Storing results in: ",outdir))
-      saveRDS(soilt_df,file=outdir)
-    }
-    else {
-      PEcAn.logger::logger.error("No output directory found.")
-    }
-    # Return the results to the terminal as well
-    return(soilt_df)
+     if (!is.null(base_data$save_path)) {
+        PEcAn.logger::logger.info(paste0("Storing results in: ",base_data$save_path))
+        saveRDS(soilt_df,file=base_data$save_path)
+     }
+     else {
+        PEcAn.logger::logger.error("No output directory found.")
+     }
+     # Return the results to the terminal as well
+     return(soilt_df)
   }
   
   
@@ -89,26 +118,8 @@ soilgrids_texture_extraction <- function(site_info, outdir=NULL, verbose=TRUE){
     future::plan(future::multisession,workers=3)
   }
   
-  data_url<-list(sand = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_",
-                 clay = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/clay/clay_",
-                 silt = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/silt/silt_")
-
-  data_sources <- list(
-    list(
-      url = data_url$sand,
-      save_path = paste0(outdir, "sand_percent.rds")
-    ),
-    list(
-      url = data_url$clay,
-      save_path = paste0(outdir, "clay_percent.rds")
-    ),
-    list(
-      url = data_url$silt,
-      save_path = paste0(outdir, "silt_percent.rds")
-    )
-  )
-  
-  results <- future.apply::future_lapply(data_sources, function(source) {
-    download_and_extraction(source$url, site_info, source$save_path)
-  },future.seed = TRUE)
+  soil_text <-furrr::future_map(data_paths,function(source){
+    download_and_extraction(source, site_info)
+  })
 }
+

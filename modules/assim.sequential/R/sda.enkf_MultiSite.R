@@ -355,11 +355,8 @@ sda.enkf.multisite <- function(settings,
       #reformatting params
       new.params <- sda_matchparam(settings, ensemble.samples, site.ids, nens)
     }
-      #sample met and soil parameter ensemble members 
-      #TODO: incorporate Phyllis's restart work
-      #      sample all inputs specified in the settings$ensemble not just met
-  
-  
+      
+   #sample all inputs specified in the settings$ensemble
    #now looking into the xml
    samp <- conf.settings$ensemble$samplingspace
    #finding who has a parent
@@ -467,7 +464,7 @@ sda.enkf.multisite <- function(settings,
       }else{
         if (control$debug) browser()
         
-        out.configs <-furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")),restart.list, inputs), function(settings, restart.arg,inputs) {
+        out.configs <-furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")),restart.list, inputs), function(settings, restart.arg, inputs) {
             # Loading the model package - this is required bc of the furrr
             library(paste0("PEcAn.",settings$model$type), character.only = TRUE)
             # wrtting configs for each settings - this does not make a difference with the old code
@@ -589,13 +586,12 @@ sda.enkf.multisite <- function(settings,
           if (is.null(control$MCMC.args)) {
             MCMC.args <- list(niter = 1e5,
                               nthin = 10,
-                              nchain = 1,
+                              nchain = 3,
                               nburnin = 5e4)
           } else {
             MCMC.args <- control$MCMC.args
           }
           #running analysis function.
-          save(X,file=file.path(settings$outdir,"X.Rdata"))
           enkf.params[[obs.t]] <- analysis_sda_block(settings, block.list.all, X, obs.mean, obs.cov, t, nt, MCMC.args, pre_enkf_params)
           enkf.params[[obs.t]] <- c(enkf.params[[obs.t]], RestartList = list(restart.list %>% stats::setNames(site.ids)))
           block.list.all <- enkf.params[[obs.t]]$block.list.all

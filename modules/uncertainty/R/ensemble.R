@@ -298,10 +298,9 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
          samples[[names(samp.ordered[i])]] <- input.ens.gen(settings=settings,
                                                          input=names(samp.ordered)[i],
                                                          method=samp.ordered[[i]]$method,
-                                                         parent_ids=if( !is.null(myparent)) samples[[myparent]] # if I have parent then give me their ids - this is where the ordering matters making sure the parent is done before it's asked
-      )
-    }
-    }
+                                                         parent_ids=if( !is.null(myparent)) samples[[myparent]]) # if I have parent then give me their ids - this is where the ordering matters making sure the parent is done before it's asked
+       }
+     }
     
     # if there is a tag required by the model but it is not specified in the xml then I replicate n times the first element 
     required_tags%>%
@@ -403,8 +402,8 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "rundir      : ", file.path(settings$host$rundir, run.id), "\n",
           "outdir      : ", file.path(settings$host$outdir, run.id), "\n",
           file = file.path(settings$rundir, run.id, "README.txt"))
+      
       #changing the structure of input tag to what the models are expecting
-      save(samples,file=file.path(settings$rundir, run.id,"samples_input.Rdata"))
       for(input_i in seq_along(settings$run$inputs)){
         input_tag <- names(settings$run$inputs)[[input_i]]
         if (!is.null(samples[[input_tag]]))

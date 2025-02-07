@@ -4,9 +4,29 @@
 \alias{soilgrids_texture_extraction}
 \title{soilgrids_texture_extraction}
 \usage{
-soilgrids_texture_extraction(site_info, outdir = NULL, verbose = TRUE)
+soilgrids_texture_extraction(
+  data_paths,
+  site_info,
+  outdir = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
+\item{data_paths}{A list containing the data (either virtual raster files or local file folders) and output path for all types of SoilGrids texture data
+e.g. data_paths <- list(
+ list(
+    url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/sand/sand_",
+    local = NULL,
+    save_path = paste0(outdir, "sand_percent.rds")),
+ list(
+    url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/clay/clay_",
+    local = NULL,
+    save_path = paste0(outdir, "clay_percent.rds")),
+ list(
+    url = "/vsicurl?max_retry=30&retry_delay=60&list_dir=no&url=https://files.isric.org/soilgrids/latest/data/silt/silt_",
+    local = NULL,
+    save_path = paste0(outdir, "silt_percent.rds")))}
+
 \item{site_info}{A data frame of site info containing the BETYdb site ID, 
 site name, latitude, and longitude, e.g. 
 (site_id, lat, lon)}
