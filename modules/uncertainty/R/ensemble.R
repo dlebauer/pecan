@@ -197,6 +197,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 ##' @param clean remove old output first?
 ##' @param write.to.db logical: Record this run in BETY?
 ##' @param restart In case this is a continuation of an old simulation. restart needs to be a list with name tags of runid, inputs, new.params (parameters), new.state (initial condition), ensemble.id (ensemble id), start.time and stop.time.See Details.
+##' @param samples Sampled inputs such as met and parameter files
 ##' @param rename Decide if we want to rename previous output files, for example convert from sipnet.out to sipnet.2020-07-16.out.
 ##'
 ##' @return list, containing $runs = data frame of runids, $ensemble.id = the ensemble ID for these runs and $samples with ids and samples used for each tag.  Also writes sensitivity analysis configuration files as a side effect
@@ -211,7 +212,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 ##' @export
 ##' @author David LeBauer, Carl Davidson, Hamze Dokoohaki
 write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, 
-                                   clean = FALSE, write.to.db = TRUE, restart = NULL, samples =NULL, rename = FALSE) {
+                                   clean = FALSE, write.to.db = TRUE, restart = NULL, samples = NULL, rename = FALSE) {
   
   con <- NULL
   my.write.config <- paste("write.config.", model, sep = "")
@@ -393,7 +394,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "site        : ", settings$run$site$name, "\n",
           "site  id    : ", format(settings$run$site$id, scientific = FALSE), "\n",
           "met data    : ", samples$met$samples[[i]], "\n",
-          "soil data   : ", samples$soilinitcond$samples[[i]], "\n",
+          "soil parameter   : ", samples$soilinitcond$samples[[i]], "\n",
           "start date  : ", settings$run$start.date, "\n",
           "end date    : ", settings$run$end.date, "\n",
           "hostname    : ", settings$host$name, "\n",
