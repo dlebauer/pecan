@@ -45,7 +45,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
     )
     return(result$par)
   }
- 
+  
   alpha0 <- estimate_alpha0(means, quantiles)
   if (alpha0 <= 0) {
     stop("Estimated alpha0 is non-positive, which is invalid.")
@@ -102,101 +102,117 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
     names(out) <- list.names
     out
   }
-
+  
   # Convert values to proportion (0-1) from percentage
   if (any(c(sand$Value, clay$Value, silt$Value) > 2)) {
-     sand$Value <- if (is.null(sand$Value)) { NULL } else { sand$Value / 100 }
-     clay$Value <- if (is.null(clay$Value)) { NULL } else { clay$Value / 100 }
-     silt$Value <- if (is.null(silt$Value)) { NULL } else { silt$Value / 100 }
+    sand$Value <- if (is.null(sand$Value)) { NULL } else { sand$Value / 100 }
+    clay$Value <- if (is.null(clay$Value)) { NULL } else { clay$Value / 100 }
+    silt$Value <- if (is.null(silt$Value)) { NULL } else { silt$Value / 100 }
   }
   ens_n <- as.numeric(settings$ensemble$size)
   # Merge all soil texture data together
   texture_all <-merge(sand, clay, by=c("Depth", "Quantile", "Siteid"))  %>% merge(silt, by=c("Depth", "Quantile", "Siteid")) %>%
-  `colnames<-`(c(
+    `colnames<-`(c(
       "soil_depth", #"soil_depth" will be used in "soil2netcdf" function
       "quantile",
       "siteid",
       "fraction_of_sand_in_soil",
       "fraction_of_clay_in_soil",
       "fraction_of_silt_in_soil"))
-
-   # Substitute the depth range with the bottom depth values (with the assumption that the first layer's top is at 0)
-   texture_all$soil_depth <-
-     gsub("100-200cm", 200, gsub("60-100cm", 100, gsub(
-    "30-60cm", 60, gsub("15-30cm", 30, gsub(
-      "5-15cm", 15, gsub("0-5cm", 5, texture_all$soil_depth))))))
-   texture_all$soil_depth <- as.numeric(texture_all$soil_depth)
-   # Reformat the list based on site id
-   f1 <- factor(texture_all$siteid, levels = unique(texture_all$siteid))
-   dat <- split(texture_all, f1)
-   # Grab Site IDs from settings
-   settings_id <-lapply(settings, function(x) as.numeric(x$run$site$id))
-
-   for (i in seq_along(dat)) {
-      samples_ens <- list()
-      paths <- c()
-      siteid <- as.numeric(unique(dat[[i]]$siteid))
-      soil_depth <- unique(dat[[i]]$soil_depth)
-      str_ns <- paste0(siteid %/% 1e+09, "-", siteid %% 1e+09)
-      temp_outdir <- file.path(outdir, siteid)
-      dir.create(temp_outdir)
-      # Estimate Dirichlet parameters for each depth at each site
-      for (depths in sort(unique(texture_all$soil_depth))) {
-          quantiles <- list(
-               q5 = dplyr::filter(dat[[i]], quantile == "0.05", soil_depth == depths) %>% dplyr::select(
-                    fraction_of_sand_in_soil,
-                    fraction_of_clay_in_soil,
-                    fraction_of_silt_in_soil), # 5th percentile for each category
-               q50 = dplyr::filter(dat[[i]], quantile == "0.5", soil_depth == depths) %>% dplyr::select(
-                    fraction_of_sand_in_soil,
-                    fraction_of_clay_in_soil,
-                    fraction_of_silt_in_soil), # 50th percentile (median) for each category
-               q95 = dplyr::filter(dat[[i]], quantile == "0.95", soil_depth == depths) %>% dplyr::select(
-                    fraction_of_sand_in_soil,
-                    fraction_of_clay_in_soil,
-                    fraction_of_silt_in_soil))  # 95th percentile for each category
-    
-         # Extract the means
-         means <- dplyr::filter(dat[[i]], quantile == "Mean", soil_depth == depths) %>% dplyr::select(fraction_of_sand_in_soil,fraction_of_clay_in_soil,fraction_of_silt_in_soil)
-         soil_rescaled <-rescale_sum_to_one(means$fraction_of_sand_in_soil,means$fraction_of_clay_in_soil,means$fraction_of_silt_in_soil)
-   
-         # Replace the original means with the rescaled ones
-         means$fraction_of_sand_in_soil <- soil_rescaled$sand
-         means$fraction_of_clay_in_soil <- soil_rescaled$clay
-         means$fraction_of_silt_in_soil <- soil_rescaled$silt
-    
-         # Estimate Dirichlet parameters
-         alpha_est <- estimate_dirichlet_parameters(as.matrix(means), quantiles)
-
-         # Generate the ensemble soil texture data based on the ensemble size (ens_n) defined in the settings
-         samples <- MCMCpack::rdirichlet(ens_n, alpha_est)
-         colnames(samples) <-c("fraction_of_sand_in_soil","fraction_of_clay_in_soil","fraction_of_silt_in_soil")
-         samples <-list(samples) %>% setNames(depths)
-         samples_ens <- append(samples_ens, samples)
-      }
   
-      # Generate soil parameter file for each one in ensemble soil texture data
-      for (ens in 1:ens_n) {
-          # Choose one sample
-          samples_all_depth <- lapply(samples_ens, function(x) x[ens, ])
-          # Reformat the nested list as input to "soil2netcdf" function
-          reformatted_soil_list <- reformat_soil_list(samples_all_depth)
-          prefix <- paste0("Soil_params_", str_ns, "_", ens)
-          new.file <-  file.path(outdir, siteid, paste0(prefix, ".nc"))
-          out.ense <- soil2netcdf(reformatted_soil_list, new.file)
-          paths <- c(new.file, paths)
-       }
+  # Substitute the depth range with the bottom depth values (with the assumption that the first layer's top is at 0)
+  texture_all$soil_depth <-
+    gsub("100-200cm", 200, gsub("60-100cm", 100, gsub(
+      "30-60cm", 60, gsub("15-30cm", 30, gsub(
+        "5-15cm", 15, gsub("0-5cm", 5, texture_all$soil_depth))))))
+  texture_all$soil_depth <- as.numeric(texture_all$soil_depth)
+  # Reformat the list based on site id
+  f1 <- factor(texture_all$siteid, levels = unique(texture_all$siteid))
+  dat <- split(texture_all, f1)
+  dat <- dat[order(as.numeric(names(dat)))] 
+  # Grab Site IDs from settings
+  settings_id <-lapply(settings, function(x) as.numeric(x$run$site$id)) %>% unlist()
+  
+  # initialize parallel.
+  cl <- parallel::makeCluster(as.numeric(parallel::detectCores()))
+  doSNOW::registerDoSNOW(cl)
+  # setup progress bar.
+  pb <- utils::txtProgressBar(min=1, max=length(dat), style=3)
+  progress <- function(n) utils::setTxtProgressBar(pb, n)
+  opts <- list(progress=progress)
+  
+  # loop over site.
+  # foreach.
+  PATH <- foreach::foreach(i = seq_along(dat), .packages = c("Kendall", "purrr", "PEcAn.data.land"), .options.snow=opts) %dopar% {
+    samples_ens <- list()
+    paths <- c()
+    siteid <- as.numeric(unique(dat[[i]]$siteid))
+    soil_depth <- unique(dat[[i]]$soil_depth)
+    str_ns <- paste0(siteid %/% 1e+09, "-", siteid %% 1e+09)
+    temp_outdir <- file.path(outdir, siteid)
+    dir.create(temp_outdir)
+    # Estimate Dirichlet parameters for each depth at each site
+    for (depths in sort(unique(texture_all$soil_depth))) {
+      quantiles <- list(
+        q5 = dplyr::filter(dat[[i]], quantile == "0.05", soil_depth == depths) %>% dplyr::select(
+          fraction_of_sand_in_soil,
+          fraction_of_clay_in_soil,
+          fraction_of_silt_in_soil), # 5th percentile for each category
+        q50 = dplyr::filter(dat[[i]], quantile == "0.5", soil_depth == depths) %>% dplyr::select(
+          fraction_of_sand_in_soil,
+          fraction_of_clay_in_soil,
+          fraction_of_silt_in_soil), # 50th percentile (median) for each category
+        q95 = dplyr::filter(dat[[i]], quantile == "0.95", soil_depth == depths) %>% dplyr::select(
+          fraction_of_sand_in_soil,
+          fraction_of_clay_in_soil,
+          fraction_of_silt_in_soil))  # 95th percentile for each category
       
-      # Write the parameter paths to settings
-      if (write_into_settings) {
-          ind <- which(settings_id == siteid)
-          settings[[ind]]$run$inputs$soilinitcond$source <- "SoilGrids"
-          settings[[ind]]$run$inputs$soilinitcond$output <- "soilinitcond"
-          settings[[ind]]$run$inputs$soilinitcond$ensemble <- ens_n
-          settings[[ind]]$run$inputs$soilinitcond$path <-create_mult_list(rep("path", ens_n), paths)
-          write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
-       }
-   }
+      # Extract the means
+      means <- dplyr::filter(dat[[i]], quantile == "Mean", soil_depth == depths) %>% dplyr::select(fraction_of_sand_in_soil,fraction_of_clay_in_soil,fraction_of_silt_in_soil)
+      soil_rescaled <-rescale_sum_to_one(means$fraction_of_sand_in_soil,means$fraction_of_clay_in_soil,means$fraction_of_silt_in_soil)
+      
+      # Replace the original means with the rescaled ones
+      means$fraction_of_sand_in_soil <- soil_rescaled$sand
+      means$fraction_of_clay_in_soil <- soil_rescaled$clay
+      means$fraction_of_silt_in_soil <- soil_rescaled$silt
+      
+      # Estimate Dirichlet parameters
+      alpha_est <- estimate_dirichlet_parameters(as.matrix(means), quantiles)
+      
+      # Generate the ensemble soil texture data based on the ensemble size (ens_n) defined in the settings
+      samples <- MCMCpack::rdirichlet(ens_n, alpha_est)
+      colnames(samples) <-c("fraction_of_sand_in_soil","fraction_of_clay_in_soil","fraction_of_silt_in_soil")
+      samples <-list(samples) %>% setNames(depths)
+      samples_ens <- append(samples_ens, samples)
+    }
+    # Generate soil parameter file for each one in ensemble soil texture data
+    for (ens in 1:ens_n) {
+      # Choose one sample
+      samples_all_depth <- lapply(samples_ens, function(x) x[ens, ])
+      # Reformat the nested list as input to "soil2netcdf" function
+      reformatted_soil_list <- reformat_soil_list(samples_all_depth)
+      prefix <- paste0("Soil_params_", str_ns, "_", ens)
+      new.file <-  file.path(outdir, siteid, paste0(prefix, ".nc"))
+      out.ense <- soil2netcdf(reformatted_soil_list, new.file)
+      paths <- c(new.file, paths)
+    }
+    return(paths)
+  } %>% purrr::set_names(names(dat))
+  # stop parallel.
+  parallel::stopCluster(cl)
+  foreach::registerDoSEQ()
+  
+  # Write the parameter paths to settings
+  if (write_into_settings) {
+    for (i in seq_along(PATH)) {
+      ind <- which(settings_id == names(PATH)[i])
+      settings[[ind]]$run$inputs$soilinitcond$source <- "SoilGrids"
+      settings[[ind]]$run$inputs$soilinitcond$output <- "soilinitcond"
+      settings[[ind]]$run$inputs$soilinitcond$ensemble <- ens_n
+      settings[[ind]]$run$inputs$soilinitcond$path <-create_mult_list(rep("path", ens_n), PATH[[i]])
+    }
+    write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
+  }
 }
 
 # A function to reformat the nested list as inputs to "soil2netcdf" function
