@@ -177,11 +177,6 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
     stop("Unsupported covariates object. Must be a SpatRaster or an sf object.")
   }
 
-  # Convert the input date to Date object
-  if (!inherits(date, "Date")) {
-    standard_date <- lubridate::ymd(date)
-  }
-
   # Dynamically get covariate names
   covariate_names <- names(predictors)
 
@@ -192,7 +187,9 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
   if (!is.null(seed)) {
     set.seed(seed) # Only set seed if provided
   }
-  sample <- sample(seq_len(nrow(full_data)), size = round(0.75 * nrow(full_data)))
+  sample <- sample(seq_len(nrow(full_data)),
+    size = round(0.75 * nrow(full_data))
+  )
   train_data <- full_data[sample, ]
   test_data <- full_data[-sample, ]
 
