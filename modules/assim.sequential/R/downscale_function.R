@@ -159,7 +159,7 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
     #    1. line starting with ##' @param date
     #    2. date = NULL from function call
     #    3. this conditional starting with if (!missing(date)) and ending after the warning below
-    PEcAn.logger::logger.warn("'date' argument is not used and will be removed on or after 2026-04-01. It is currently ignored.", call. = FALSE)
+    PEcAn.logger::logger.warn("'date' argument is not used and will be removed on or after 2026-04-01. It is currently ignored.")
   }
   carbon_data <- preprocessed$carbon_data
 
