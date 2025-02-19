@@ -24,6 +24,7 @@ Imports:
     amerifluxr,
     assertthat,
     arrow,
+    caladaptr,
     curl,
     dplyr (>= 0.8.1),
     geonames (> 0.998),
@@ -77,6 +78,7 @@ Remotes:
     github::chuhousen/amerifluxr,
     github::ropensci/geonames,
     github::ropensci/nneo
+    github::ucanr-igis/caladaptr
 License: BSD_3_clause + file LICENSE
 Copyright: Authors
 LazyLoad: yes
