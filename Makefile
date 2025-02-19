@@ -99,35 +99,58 @@ doc_R_pkg = \
 
 depends = .doc/$(1) .install/$(1) .check/$(1) .test/$(1)
 
-
 ### Rules
 
 .PHONY: all install check test document shiny \
-            check_base check_models check_modules 
+            check_base check_models check_modules document help
 
 all: install document
 
-
-check_base: $(BASE_C) 
-check_models: $(MODELS_C) 
-
-# Install base first as Modules has a circular dependency on base,
-# and then run a check on modules
-check_modules: $(BASE_I) $(MODULES_C) 
+#    Note: Installs base first as Modules has a circular dependency on base
+check_base: $(BASE_C)
+check_models: $(MODELS_C)
+check_modules: $(BASE_I) $(MODULES_C)
 
 document: $(ALL_PKGS_D) .doc/base/all
+
 install: $(ALL_PKGS_I) .install/base/all
 check: $(ALL_PKGS_C) .check/base/all
 test: $(ALL_PKGS_T) .test/base/all
 shiny: $(SHINY_I)
 
-# Render the PEcAn bookdown documentation
-book:
+book: 
 	cd ./book_source && make build
 
 # Make the timestamp directories if they don't exist yet
 .doc .install .check .test .shiny_depends $(call depends,base) $(call depends,models) $(call depends,modules):
 	mkdir -p $@
+
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make all"
+	@echo "  make document"
+	@echo "  make document modules/assim.sequential  # Generate documentation for a specific package"
+	@echo ""
+	@echo "Notes:"
+	@echo "  - Components not included: cable (models), data.mining and DART (modules)."
+	@echo "  - Standard workflow: install packages, run checks, test, and document before submitting a PR."
+	@echo "  - Before submitting a PR, please ensure that all tests pass, code is linted, and documentation is up-to-date."
+	@echo ""
+	@echo "Available targets:"
+	@echo "  all            Install all packages and generate documentation"
+	@echo "  check_base     Run R package checks on all in base/"
+	@echo "  check_models   Run R package checks on all in models/"
+	@echo "  check_modules  Run R package checks on all in modules/"
+	@echo "  document       Generate function documentation for packages"
+	@echo "  install        Install all packages"
+	@echo "  check          Run R package checks on all packages"
+	@echo "  test           Run unit tests on all packages"
+	@echo "  shiny          Install dependencies for Shiny apps"
+	@echo "  book           Render the PEcAn bookdown documentation"
+	@echo "  clean          Remove build artifacts"
+	@echo "  help           Show this help message"
 
 ### Dependencies
 
@@ -140,7 +163,7 @@ $(subst .doc/models/template,,$(MODELS_D)): .install/models/template
 # target need not be rebuilt when a prerequisite changes)
 include Makefile.depends
 
-clean:
+clean: 
 	rm -rf .install .check .test .doc
 	find modules/rtm/src \( -name \*.mod -o -name \*.o -o -name \*.so \) -delete
 	find models/basgra/src \( -name \*.mod -o -name \*.o -o -name \*.so \) -delete
