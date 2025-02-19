@@ -17,6 +17,9 @@ point_sf <- data.frame(lon = -120, lat = 36) |>
 bad_point_sf <- data.frame(lon = -180, lat = 0) |>
     sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
+# load required caladaptr datasets
+data(list = c("gcms", "cvars", "periods", "scenarios"), package = "caladaptr")
+
 test_that("download_caladapt_loca_raster returns a tibble with expected columns for polygon input", {
     skip_on_cran()
     skip_on_ci()

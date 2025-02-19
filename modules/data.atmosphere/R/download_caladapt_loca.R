@@ -135,6 +135,7 @@ download_caladapt_loca_raster <- function(sf_obj,
 .validate_caladapt_fn_inputs <- function(var, gcm, scenario, period, start_year, end_year, sf_obj, raster_path, out_dir) {
   .validate_dates(scenario, start_year, end_year)
   .validate_gcm(gcm)
+  .validate_scenario(scenario)
   .validate_period(period)
   .validate_var(var)
   .validate_raster_path(raster_path)
@@ -168,6 +169,17 @@ download_caladapt_loca_raster <- function(sf_obj,
   }
   if (!gcm %in% gcms) {
     PEcAn.logger::logger.error("Invalid GCM name, must be one of: ", paste(gcms, collapse = ", "))
+    return(invisible(NULL))
+  }
+  invisible(TRUE)
+}
+
+.validate_scenario <- function(scenario) {
+  if (!exists("scenarios", envir = environment())) {
+    data(scenarios, package = "caladaptr", envir = environment())
+  }
+  if (!scenario %in% scenarios) {
+    PEcAn.logger::logger.error("Invalid scenario, must be one of: ", paste(scenarios, collapse = ", "))
     return(invisible(NULL))
   }
   invisible(TRUE)
@@ -222,7 +234,7 @@ download_caladapt_loca_raster <- function(sf_obj,
 .validate_sf_obj <- function(sf_obj) {
   if (!inherits(sf_obj, c("sf", "sfc"))) {
     if (inherits(sf_obj, "SpatVector")) {
-      sf_obj <- terra::as_sf(sf_obj)
+      sf_obj <- sf::st_as_sf(sf_obj)
     } else {
       PEcAn.logger::logger.error("Points or polygon must be an 'sf', 'sfc' or 'SpatVector' object")
       stop("Points or polygon must be an 'sf', 'sfc' or 'SpatVector' object")
