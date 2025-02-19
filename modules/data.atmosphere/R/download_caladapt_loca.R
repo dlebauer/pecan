@@ -11,7 +11,7 @@
 #' - [Cal Adapt Data Catalog Documentation](https://berkeley-gif.github.io/caladapt-docs/data-catalog.html)
 #' - [Cal-Adapt Loca Data Catalog](https://albers.cnr.berkeley.edu/data/scripps/loca/met/)
 #'
-#' @param sf_obj An `sf`, `sfc`, or `SpatRaster` row representing the points or polygon boundary
+#' @param sf_obj An `sf`, `sfc`, or `SpatVector` row representing the points or polygon boundary
 #'   (required for `download_caladapt_loca_raster()`).
 #' @param var Character. Climate variable to retrieve. One of "tasmax", "tasmin", "pr",
 #' "swe", "baseflow", "et", "rainfall",
@@ -40,7 +40,7 @@
 #'   select(state_name, county_name = name, geom) |>
 #'   st_transform(4326)
 #'
-#' polygon_rasters <- download_caladapt_loca_raster(
+#' polygon_rasters <- download_caladapt_loca(
 #'   sf_obj = yolo_polygon,
 #'   var = "pr",
 #'   gcm = "CNRM-CM5",
@@ -221,11 +221,11 @@ download_caladapt_loca_raster <- function(sf_obj,
 
 .validate_sf_obj <- function(sf_obj) {
   if (!inherits(sf_obj, c("sf", "sfc"))) {
-    if (inherits(sf_obj, "SpatRaster")) {
+    if (inherits(sf_obj, "SpatVector")) {
       sf_obj <- terra::as_sf(sf_obj)
     } else {
-      PEcAn.logger::logger.error("Points or polygon must be an 'sf', 'sfc' or 'SpatRaster' object")
-      return(invisible(NULL))
+      PEcAn.logger::logger.error("Points or polygon must be an 'sf', 'sfc' or 'SpatVector' object")
+      stop("Points or polygon must be an 'sf', 'sfc' or 'SpatVector' object")
     }
   }
   if (inherits(sf_obj, "sfc")) {
@@ -235,7 +235,7 @@ download_caladapt_loca_raster <- function(sf_obj,
     sf_obj <- sf::st_make_valid(sf_obj)
     if (!sf::st_is_valid(sf_obj)) {
       PEcAn.logger::logger.error("Polygon is not valid.")
-      return(invisible(NULL))
+      stop("Polygon is not valid.")
     }
   }
   # California bounding box
@@ -252,19 +252,19 @@ download_caladapt_loca_raster <- function(sf_obj,
     intersection_area <- if (nrow(sf::st_drop_geometry(intersection)) > 0) sf::st_area(intersection) else units::set_units(0, "m^2")
     if (intersection_area == units::set_units(0, "m^2")) {
       PEcAn.logger::logger.error("Polygon must be within California bounding box")
-      return(invisible(NULL))
+      stop("Polygon must be within California bounding box")
     } else if (intersection_area < 0.95 * sf::st_area(sf_obj)) {
       PEcAn.logger::logger.warn("Polygon is not fully within the Cal-Adapt bounding box. Intersection area: ", intersection_area, "; Polygon area: ", sf::st_area(sf_obj))
     }
   }
   if ("POINT" %in% geom_type) {
     within <- sf::st_within(sf_obj, ca_bbox, sparse = FALSE)
-    if (!as.logical(all(within))) {
+    if (!all(within)) {
       PEcAn.logger::logger.error("Point must be within the Cal-Adapt bounding box")
-      return(invisible(NULL))
+      stop("Point must be within the Cal-Adapt bounding box")
     }
   }
-  invisible(sf_obj)
+  return(sf_obj)
 }
 
 .try_get_raster <- function(request, out_dir) {

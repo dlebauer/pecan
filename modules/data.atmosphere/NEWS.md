@@ -1,3 +1,9 @@
+# PEcAn.data.atmosphere 1.8.1
+
+## Added 
+
+* `download_caladapt_loca` to download rasters from Cal-Adapt LOCA dataset given a spatial point or polygon object.
+
 # PEcAn.data.atmosphere 1.8.0.9000
 
 ## Fixed
