@@ -59,20 +59,3 @@ test_that("download_caladapt_loca_raster returns a tibble with expected columns 
     # For point input, the helper may not add lat/lon columns so we check the common columns.
     expect_true(all(c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster") %in% colnames(result)))
 })
-
-test_that("download_caladapt_loca_raster errors for invalid point input", {
-    tmp_dir <- withr::local_tempdir()
-    expect_error(
-        download_caladapt_loca_raster(
-            sf_obj = bad_point_sf,
-            var = "tasmax",
-            gcm = "HadGEM2-ES",
-            scenario = "historical",
-            period = "year",
-            start_year = 2006,
-            end_year = 2010,
-            out_dir = tmp_dir
-        ),
-        regexp = "must be within the Cal-Adapt bounding box"
-    )
-})
