@@ -66,3 +66,4 @@ test_that("download_caladapt_loca_raster returns a tibble with expected columns 
     )
     expect_true(file.exists(result$raster))
 })
+## TODO: test that it takes terra SpatVector objects
