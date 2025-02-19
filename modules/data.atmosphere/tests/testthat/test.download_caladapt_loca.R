@@ -35,7 +35,11 @@ test_that("download_caladapt_loca_raster returns a tibble with expected columns 
         skip("Gateway Timeout encountered; skipping test")
     }
     expect_s3_class(result, "tbl_df")
-    expect_true(all(c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster") %in% colnames(result)))
+    expect_in(
+        c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster"),
+        colnames(result)
+    )
+    expect_true(file.exists(result$raster))
 })
 
 test_that("download_caladapt_loca_raster returns a tibble with expected columns for point input", {
@@ -56,6 +60,9 @@ test_that("download_caladapt_loca_raster returns a tibble with expected columns 
         skip("Gateway Timeout encountered; skipping test")
     }
     expect_s3_class(result, "tbl_df")
-    # For point input, the helper may not add lat/lon columns so we check the common columns.
-    expect_true(all(c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster") %in% colnames(result)))
+    expect_in(
+        c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster"),
+        colnames(result)
+    )
+    expect_true(file.exists(result$raster))
 })
