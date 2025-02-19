@@ -71,7 +71,44 @@ download_caladapt_loca_raster <- function(sf_obj,
 
   .validate_caladapt_fn_inputs(var, gcm, scenario, period, start_year, end_year, sf_obj, raster_path, out_dir)
 
-    
+  geom_type <- unique(sf::st_geometry_type(sf_obj))
+
+  # If the geometry is a polygon or multipolygon, check if it is large and split into blocks.
+  geom_type <- unique(sf::st_geometry_type(sf_obj))
+  if (any(c("POLYGON", "MULTIPOLYGON") %in% geom_type)) {
+    polygon_blocks <- caladaptr::ca_biggeom_blocks(sf_obj, block_area_mi2 = 2000)
+    if (nrow(polygon_blocks) > 1) {
+      results <- purrr::map_dfr(polygon_blocks$geom, function(block_geom) {
+        block <- sf::st_as_sf(
+          tibble::tibble(geom = list(block_geom)),
+          crs = sf::st_crs(sf_obj)
+        )
+        request <- caladaptr::ca_apireq() |>
+          caladaptr::ca_loc_sf(block) |>
+          caladaptr::ca_gcm(gcm) |>
+          caladaptr::ca_scenario(scenario) |>
+          caladaptr::ca_period(period) |>
+          caladaptr::ca_cvar(var) |>
+          caladaptr::ca_years(start = start_year, end = end_year)
+
+        y <- request |>
+          caladaptr::ca_getrst_stars(out_dir = out_dir)
+
+        block |>
+          dplyr::mutate(
+            var = var,
+            gcm = gcm,
+            scenario = scenario,
+            period = period,
+            start_year = start_year,
+            end_year = end_year,
+            raster = y
+          )
+      })
+      return(results)
+    }
+  }
+
   # Build caladapt request
   request <- caladaptr::ca_apireq() |>
     caladaptr::ca_loc_sf(sf_obj) |>
@@ -163,11 +200,31 @@ download_caladapt_loca_raster <- function(sf_obj,
       -125.0, 32.0
     ), ncol = 2, byrow = TRUE)
   )) |> sf::st_sfc(crs = sf::st_crs(sf_obj))
-
-  # Optionally, warn if only part of the point or polygon is inside
-  intersection_area <- sf::st_area(sf::st_intersection(sf_obj, ca_bbox))
-  if (as.numeric(intersection_area) == 0) {
-    PEcAn.logger::logger.error("Polygon must be within the Cal-Adapt bounding box")
+  
+  geom_type <- unique(sf::st_geometry_type(sf_obj))
+  if ("POLYGON" %in% geom_type || "MULTIPOLYGON" %in% geom_type) {
+    sf_obj_area <- sf::st_area(sf_obj)
+    intersection <- sf::st_intersection(sf_obj, ca_bbox)
+    intersection_area <- if (nrow(sf::st_drop_geometry(intersection)) > 0) sf::st_area(intersection) else units::set_units(0, "m^2")
+    if (intersection_area == units::set_units(0, "m^2")) {
+      PEcAn.logger::logger.error("Polygon must be within California bounding box")
+    } else if (intersection_area < 0.95 * sf_obj_area) { # partial overlap
+      PEcAn.logger::logger.warn(
+        "Polygon is not fully within the Cal-Adapt bounding box. Intersection area: ",
+        intersection_area, "; Polygon area: ", sf_obj_area
+      )
+    } else if (abs(sf_obj_area - intersection_area) < units::set_units(1, "m^2")) {
+      PEcAn.logger::logger.info("Polygon is fully within the Cal-Adapt bounding box")
+    }
+  }
+  if ("POINT" %in% geom_type) {
+    # st_within returns a list/sparse matrix so convert to logical vector.
+    within <- sf::st_within(sf_obj, ca_bbox, sparse = FALSE)
+    if (!as.logical(all(within))) {
+      PEcAn.logger::logger.error("Point must be within the Cal-Adapt bounding box")
+    } else {
+      PEcAn.logger::logger.info("Point is within the Cal-Adapt bounding box")
+    }
   }
   invisible(sf_obj)
 }
@@ -183,10 +240,10 @@ download_caladapt_loca_raster <- function(sf_obj,
 }
 
 .validate_var <- function(var) {
-  if(!exists("vars", envir = environment())) {
-    data(vars, package = "caladaptr", envir = environment())
+  if(!exists("cvars", envir = environment())) {
+    data(cvars, package = "caladaptr", envir = environment())
   }
-  if (!var %in% vars) {
+  if (!var %in% cvars) {
     PEcAn.logger::logger.error("Invalid variable, must be one of: tasmax, tasmin, pr, swe, baseflow, et, rainfall, runoff, snowfall, soilMoist1, Tair")
   }
   invisible(TRUE)
