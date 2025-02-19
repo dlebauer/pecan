@@ -25,27 +25,26 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
   }
 
   if (is.character(site_coords)) {
-    site_coordinates <- readr::read_csv(site_coords)
+    site_coordinates <- readr::read_csv(site_coords, show_col_types = FALSE)
   } else {
     site_coordinates <- site_coords
   }
 
   # If sf object, convert to data.frame with 'lon' and 'lat'
   if (inherits(site_coordinates, "sf")) {
-    lonlats <- sf::st_coordinates(site_coordinates) |>
-      rename(lon = X, lat = Y)
-    site_coordinates <- dplyr::bind_cols(
-      site_coordinates,
-      lonlats
-    )
+    site_coordinates <- sf::st_coordinates(site_coordinates) |>
+      dplyr::rename(lon = X, lat = Y) |>
+      dplyr::bind_cols(
+        site_coordinates
+      )
   }
 
   # Ensure site coordinates have 'lon' and 'lat' columns
   if (!all(c("lon", "lat") %in% names(site_coordinates))) {
-    stop("Site coordinates must contain 'lon' and 'lat' columns.")
+    PEcAn.logger::logger.error("Site coordinates must contain 'lon' and 'lat' columns.")
   }
 
-  # Convert input_data names to Date objects
+  # Standardize input_data date names YYYY-MM-DD
   input_date_names <- lubridate::ymd(names(input_data))
   names(input_data) <- input_date_names
 
@@ -56,7 +55,7 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
 
   # Ensure the date exists in the input data
   if (!standard_date %in% input_date_names) {
-    stop(paste("Date", standard_date, "not found in the input data."))
+    PEcAn.logger::logger.error(paste("Date", standard_date, "not found in the input data."))
   }
 
   # Extract the carbon data for the specified focus year
@@ -65,7 +64,7 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
 
   # Ensure the carbon pool exists in the input data
   if (!carbon_pool %in% names(data)) {
-    stop(paste("Carbon pool", carbon_pool, "not found in the input data."))
+    PEcAn.logger::logger.error("Carbon pool", carbon_pool, "not found in the input data.")
   }
 
   carbon_data <- as.data.frame(t(data[which(names(data) == carbon_pool)]))
@@ -73,17 +72,25 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
 
   # Ensure the number of rows in site coordinates matches the number of rows in carbon data
   if (nrow(site_coordinates) != nrow(carbon_data)) {
-    message("Number of rows in site coordinates does not match the number of rows in carbon data.")
-    if (nrow(site_coordinates) > nrow(carbon_data)) {
-      message("Truncating site coordinates to match carbon data rows.")
-      site_coordinates <- site_coordinates[seq_len(nrow(carbon_data)), ]
-    } else {
-      message("Truncating carbon data to match site coordinates rows.")
-      carbon_data <- carbon_data[seq_len(nrow(site_coordinates)), ]
-    }
+    PEcAn.logger::logger.info(
+      "Number of rows in site coordinates does not match the number of rows in carbon data."
+    )
+    PEcAn.logger::logger.info(
+      "There are", nrow(site_coordinates), "row(s) in site coordinates and",
+      nrow(carbon_data), "row(s) in carbon data."
+    )
+    PEcAn.logger::logger.error("I am not sure how to reconcile these differences.")
+    # see https://github.com/PecanProject/pecan/pull/3431/files#r1953601359
+  #    if (nrow(site_coordinates) > nrow(carbon_data)) {
+  #      PEcAn.logger::logger.info("Truncating site coordinates to match carbon data rows.")
+  #      site_coordinates <- site_coordinates[seq_len(nrow(carbon_data)), ]
+  #    } else {
+  #      PEcAn.logger::logger.info("Truncating carbon data to match site coordinates rows.")
+  #      carbon_data <- carbon_data[seq_len(nrow(site_coordinates)), ]
+  #    }
   }
 
-  message("Preprocessing completed successfully.")
+  PEcAn.logger::logger.info("Preprocessing completed successfully.")
   return(list(input_data = input_data, site_coordinates = site_coordinates, carbon_data = carbon_data))
 }
 
@@ -93,11 +100,11 @@ SDA_downscale_preprocess <- function(ensemble_data, site_coords, date, carbon_po
     return(coords)
   } else if (is.data.frame(coords)) {
     if (!all(c("lon", "lat") %in% names(coords))) {
-      stop("Coordinates data frame must contain 'lon' and 'lat'.")
+      PEcAn.logger::logger.error("Coordinates data frame must contain 'lon' and 'lat'.")
     }
     return(sf::st_as_sf(coords, coords = c("lon", "lat"), crs = 4326))
   } else {
-    stop("Unsupported coordinates format. Must be an sf object or a data.frame.")
+    PEcAn.logger::logger.error("Unsupported coordinates format. Must be an sf object or a data.frame.")
   }
 }
 
@@ -174,7 +181,7 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
     # For sf objects, spatial join
     predictors <- sf::st_drop_geometry(sf::st_join(site_coordinates_sf, covariates, join = sf::st_intersects))
   } else {
-    stop("Unsupported covariates object. Must be a SpatRaster or an sf object.")
+    PEcAn.logger::logger.error("Unsupported covariates object. Must be a SpatRaster or an sf object.")
   }
 
   # Dynamically get covariate names
@@ -315,8 +322,8 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
             decay_rate = 0.9
           )
 
-          # Early stopping callback
-          early_stopping <- keras3::callback_early_stopping(
+          # Early PEcAn.logger::logger.errorping callback
+          early_PEcAn.logger::logger.errorping <- keras3::callback_early_PEcAn.logger::logger.errorping(
             monitor = "loss",
             patience = 10,
             restore_best_weights = TRUE
@@ -335,7 +342,7 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
             y = y_train_bag,
             epochs = 500,
             batch_size = 32,
-            callbacks = list(early_stopping),
+            callbacks = list(early_PEcAn.logger::logger.errorping),
             verbose = 0
           )
 
@@ -371,7 +378,7 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
       predictions[[i]] <- cnn_ensemble_predict(models[[i]], x_data[-sample, ], scaling_params)
     }
   } else {
-    stop("Invalid model_type. Please choose either 'rf' for Random Forest or 'cnn' for Convolutional Neural Network.")
+    PEcAn.logger::logger.error("Invalid model_type. Please choose either 'rf' for Random Forest or 'cnn' for Convolutional Neural Network.")
   }
 
   # Organize the results into a single output list

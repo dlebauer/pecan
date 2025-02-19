@@ -1,13 +1,8 @@
-library(testthat)
-library(sf)
-library(terra)
-library(randomForest)
-library(withr)
-
 # Test setup: temporary datasets and files
 withr::with_tempdir({
-  temp_ensemble_data <- "ensemble_data.rds"
-  temp_coords <- "final_design_points.csv"
+  temp_ensemble_data_rds <- "ensemble_data.rds"
+  temp_coords_csv <- "final_design_points.csv"
+  file.remove(temp_ensemble_data_rds, temp_coords_csv)
 
   set.seed(123)
   ensemble_data <- list(
@@ -25,16 +20,25 @@ withr::with_tempdir({
     lat = runif(10, 33.5, 34.5),
     lon = runif(10, -118, -117)
   )
-  write.csv(site_coordinates, temp_coords, row.names = FALSE)
+  write.csv(site_coordinates, temp_coords_csv, row.names = FALSE)
 
   # Test `SDA_downscale_preprocess`
-  test_that("SDA_downscale_preprocess handles vector inputs correctly", {
+  test_that("SDA_downscale_preprocess handles both file and objects as inputs", {
+    # file inputs
     processed_data <- SDA_downscale_preprocess(
-      data_path = temp_ensemble_data,
-      coords_path = temp_coords,
+      ensemble_data = temp_ensemble_data_rds,
       date = "2020-01-01",
-      carbon_pool = "SOC"
+      carbon_pool = "SOC",
+      site_coords = site_coordinates
     )
+    # object inputs
+    processed_data2 <- SDA_downscale_preprocess(
+      ensemble_data = ensemble_data,
+      date = "2020-01-01",
+      carbon_pool = "SOC",
+      site_coords = temp_coords_csv
+    )
+    expect_identical(processed_data, processed_data2)
 
     expect_true(is.list(processed_data))
     expect_true("input_data" %in% names(processed_data))
@@ -65,7 +69,6 @@ withr::with_tempdir({
   test_that("SDA_downscale works with sf coordinates and raster covariates", {
     downscaled_results <- SDA_downscale(
       preprocessed = preprocessed,
-      date = "2020-01-01",
       carbon_pool = "SOC",
       covariates = r,
       model_type = "rf"
