@@ -6,6 +6,7 @@ MikkoPeltoniemi/Rpreles
 RemkoDuursma/Maeswrap
 ropensci/geonames
 ropensci/nneo
+    github::ucanr-igis/caladaptr
 ropensci/traits
 SticsRPacks/SticsOnR
 SticsRPacks/SticsRFiles
