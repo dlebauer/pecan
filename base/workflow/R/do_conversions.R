@@ -77,7 +77,7 @@ do_conversions <- function(settings, overwrite.met = FALSE, overwrite.fia = FALS
     # Phenology data extraction
     if(input.tag == "leaf_phenology" && is.null(input$path)){
       # Use settings$run$site if available, otherwise query site
-      site <- if(!is.null(settings$run$site)) {
+      site <- if(!is.null(settings$run$site$lat) && !is.null(settings$run$site$lon)) {
         settings$run$site
       } else {
         query.site(site.id = settings$run$site$site.id, con = NULL)
