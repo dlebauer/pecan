@@ -76,7 +76,13 @@ do_conversions <- function(settings, overwrite.met = FALSE, overwrite.fia = FALS
 
     # Phenology data extraction
     if(input.tag == "leaf_phenology" && is.null(input$path)){
-      site <- query.site(site.id = setting$run$site$site.id, con = NULL)
+      # Use settings$run$site if available, otherwise query site
+      site <- if(!is.null(settings$run$site)) {
+        settings$run$site
+      } else {
+        query.site(site.id = settings$run$site$site.id, con = NULL)
+      }
+      
       settings$run$inputs[[i]]$path <- 
         PEcAn.data.remote::extract_phenology_MODIS(
           site_info = site,
