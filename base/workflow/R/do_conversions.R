@@ -80,7 +80,7 @@ do_conversions <- function(settings, overwrite.met = FALSE, overwrite.fia = FALS
       site <- if(!is.null(settings$run$site$lat) && !is.null(settings$run$site$lon)) {
         settings$run$site
       } else {
-        PEcAN.DB::query.site(site.id = settings$run$site$site.id, con = NULL)
+        PEcAn.DB::query.site(site.id = settings$run$site$site.id, con = NULL)
       }
       
       settings$run$inputs[[i]]$path <- 
