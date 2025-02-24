@@ -9,7 +9,7 @@
 ## Added
 
 * `createMultiSiteSettings` argument `siteIds` now accepts data frames as well as the previously accepted numeric or character vectors. The data frame should have one site per row, uniquely identified by a mandatory `id` column. All columns of each row will become fields of the resulting `settings$run$site` block.
-* New function `setMultiSiteEnsemblePaths` inserts paths to your ensemble inputs (met, poolinitcond, etc) into every site's `inputs` block according to the filename pattern specified in a template string.
+* New function `setEnsemblePaths` inserts paths to your ensemble inputs (met, poolinitcond, etc) into every site's `inputs` block according to the filename pattern specified in a template string.
 
 ## Removed
 

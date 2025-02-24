@@ -1,4 +1,4 @@
-test_that("setMultiSiteEnsemblePaths sets paths across sites", {
+test_that("setEnsemblePaths sets paths across sites", {
   template_settings <- Settings(
     list(
       run = list(
@@ -10,7 +10,7 @@ test_that("setMultiSiteEnsemblePaths sets paths across sites", {
   )
   siteids <- c("s1", "s2")
   settings <- createMultiSiteSettings(template_settings, siteids)
-  with_paths <- setMultiSiteEnsemblePaths(settings, n_reps = 3)
+  with_paths <- setEnsemblePaths(settings, n_reps = 3)
 
   # only inputs should have changed
   expect_identical(
@@ -34,12 +34,12 @@ test_that("setMultiSiteEnsemblePaths sets paths across sites", {
 
   # only known input types accepted
   expect_error(
-    setMultiSiteEnsemblePaths(settings, 3, input_type = "fake"),
+    setEnsemblePaths(settings, 3, input_type = "fake"),
     ".arg. should be one of .met., .poolinitcond., .soilinitcond."
   )
 
   # extra vars passed through to glue
-  with_extras <- setMultiSiteEnsemblePaths(
+  with_extras <- setEnsemblePaths(
     settings,
     n_reps = 3,
     foo = "bar", ext = "txt",

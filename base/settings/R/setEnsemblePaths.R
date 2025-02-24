@@ -23,16 +23,16 @@
 #'       met = list(),
 #'       poolinitcond = list()))))
 #' m <- createMultiSiteSettings(s, c("a1", "b2"))
-#' m1 <- setMultiSiteEnsemblePaths(m, 2)
+#' m1 <- setEnsemblePaths(m, 2)
 #' m2$run$site.a1$inputs
-#' m2 <- setMultiSiteEnsemblePaths(
+#' m2 <- setEnsemblePaths(
 #'   m, 2, "poolinitcond",
 #'   icdir = "some/long/path",
 #'   path_template = "{icdir}/{id}/{n}.nc"
 #' )
 #' m2$run$site.a1$inputs
 #' @export
-setMultiSiteEnsemblePaths <- function(
+setEnsemblePaths <- function(
     settings,
     n_reps,
     input_type = c("met", "poolinitcond", "soilinitcond"),
