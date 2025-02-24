@@ -41,6 +41,9 @@ inserted into a PEcAn settings object as one block of \verb{<path>} entries:
 }\if{html}{\out{</div>}}
 }
 \examples{
+\dontrun{
 build_pathset(3, "IC/foo/IC_foo_{n}.nc")
 build_pathset(n = 1:3, id = "2ce800f4", yr = 2003, "ERA5/{id}/{yr}_{n}.clim")
 }
+}
+\keyword{internal}

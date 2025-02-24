@@ -19,8 +19,7 @@ setEnsemblePaths(
 
 \item{input_type}{subsection of the \code{inputs} settings to be edited}
 
-\item{path_template}{format for the paths to be inserted, as a \code{glue} string.
-\code{{n}} will be replaced with each value of 1:\code{n_reps}, and \code{{id}} will be replaced with the siteid of each site}
+\item{path_template}{format for the paths to be inserted, as a \code{glue} string.}
 
 \item{...}{additional variables to be interpolated into \code{path_template}}
 }
@@ -28,10 +27,21 @@ setEnsemblePaths(
 updated settings object
 }
 \description{
+Propagates a filename pattern into the relevant paths of a multi-site
+settings. For example if your files are named like "mymet/siteA/scenario1.nc"
+up through "mymet/siteZ/scenario50.nc",
+\code{setEnsemblePaths(settings, n_reps = 50, "mymet/{id}/scenario{n}.nc")} will
+add them all to your settings in one shot.
+}
+\details{
 Operates on one input section (met, poolinitcond, etc) at a time because
 it's common to have different path conventions for met vs IC.
-Under the hood it calls \code{build_pathset} for each site; if this is too
-limited, consider calling that directly.
+
+The path template should be a string recognized by \code{glue::glue()},
+with curly braces wrapping any expressions to be interpolated.
+\code{{n}} will be replaced with each value of 1:\code{n_reps}, \code{{id}} will be
+replaced with the siteid of each site, and any other variables need to be
+passed as named arguments in \code{...}.
 }
 \examples{
 s <- as.Settings(list(
@@ -40,10 +50,13 @@ s <- as.Settings(list(
     site = list(),
     inputs = list(
       met = list(),
-      poolinitcond = list()))))
+      poolinitcond = list()
+    )
+  )
+))
 m <- createMultiSiteSettings(s, c("a1", "b2"))
 m1 <- setEnsemblePaths(m, 2)
-m2$run$site.a1$inputs
+m1$run$site.a1$inputs
 m2 <- setEnsemblePaths(
   m, 2, "poolinitcond",
   icdir = "some/long/path",

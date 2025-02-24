@@ -1,17 +1,24 @@
-
-
 #' Set paths to input file ensembles using a consistent pattern across sites
+#'
+#' Propagates a filename pattern into the relevant paths of a multi-site
+#' settings. For example if your files are named like "mymet/siteA/scenario1.nc"
+#' up through "mymet/siteZ/scenario50.nc",
+#' `setEnsemblePaths(settings, n_reps = 50, "mymet/{id}/scenario{n}.nc")` will
+#' add them all to your settings in one shot.
 #'
 #' Operates on one input section (met, poolinitcond, etc) at a time because
 #' it's common to have different path conventions for met vs IC.
-#' Under the hood it calls `build_pathset` for each site; if this is too
-#' limited, consider calling that directly.
+#'
+#' The path template should be a string recognized by `glue::glue()`,
+#' with curly braces wrapping any expressions to be interpolated.
+#' `{n}` will be replaced with each value of 1:`n_reps`, `{id}` will be
+#' replaced with the siteid of each site, and any other variables need to be
+#' passed as named arguments in `...`.
 #'
 #' @param settings a PEcAn MultiSettings object
 #' @param n_reps number of replicates to insert for each path.
 #' @param input_type subsection of the `inputs` settings to be edited
 #' @param path_template format for the paths to be inserted, as a `glue` string.
-#'  `{n}` will be replaced with each value of 1:`n_reps`, and `{id}` will be replaced with the siteid of each site
 #' @param ... additional variables to be interpolated into `path_template`
 #' @return updated settings object
 #' @examples
@@ -21,10 +28,13 @@
 #'     site = list(),
 #'     inputs = list(
 #'       met = list(),
-#'       poolinitcond = list()))))
+#'       poolinitcond = list()
+#'     )
+#'   )
+#' ))
 #' m <- createMultiSiteSettings(s, c("a1", "b2"))
 #' m1 <- setEnsemblePaths(m, 2)
-#' m2$run$site.a1$inputs
+#' m1$run$site.a1$inputs
 #' m2 <- setEnsemblePaths(
 #'   m, 2, "poolinitcond",
 #'   icdir = "some/long/path",
@@ -40,12 +50,11 @@ setEnsemblePaths <- function(
     ...) {
   if (!is.MultiSettings(settings)) {
     PEcAn.logger::logger.error(
-      "Setting ensemble paths is only implemented",
-      "for MultiSettings objects"
+      "Setting ensemble paths is only implemented for MultiSettings objects"
     )
   }
   input_type <- match.arg(input_type)
-    for (sitename in names(settings$run)) {
+  for (sitename in names(settings$run)) {
     siteid <- settings$run[[sitename]]$site$id
     paths <- build_pathset(
       n = n_reps,
@@ -89,9 +98,15 @@ setEnsemblePaths <- function(
 #' @param ... other variables to be interpolated into the path, each with length
 #'  either 1 or equal to `n`.
 #' @return list of paths the same length as `n`, with names set as `path<n>`
+#' @keywords internal
+### ^ Internal for now, but OK to export later if that proves useful.
+### If/when exporting, remove the \dontrun{} below along with this comment --
+###  it's only here bc R checks complain if examples use unexported functions
 #' @examples
+#' \dontrun{
 #' build_pathset(3, "IC/foo/IC_foo_{n}.nc")
 #' build_pathset(n = 1:3, id = "2ce800f4", yr = 2003, "ERA5/{id}/{yr}_{n}.clim")
+#' }
 build_pathset <- function(n, glue_str = "./file_{n}.nc", ...) {
   if (length(n) == 1 && is.numeric(n)) {
     n <- seq_len(n)
@@ -99,5 +114,5 @@ build_pathset <- function(n, glue_str = "./file_{n}.nc", ...) {
   values <- list(n = n, ...)
   glue::glue_data(.x = values, glue_str) |>
     as.list() |>
-    setNames(glue::glue("path{n}", n = n))
+    stats::setNames(glue::glue("path{n}", n = n))
 }
