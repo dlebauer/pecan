@@ -30,7 +30,7 @@ identical to the input, except ready to run for each site in the vector
 of site IDs.
 If \code{siteIds} is a data frame with a column named \code{id},
 each resulting \code{run$site} block will contain all the site parameters
-(lat/lon, site name, etc) that are specified in its other columns.
+(lat, lon, site name, etc) that are specified in its other columns.
 }
 \examples{
 dontrun <- function() { # Added by Alexey Shiklomanov
