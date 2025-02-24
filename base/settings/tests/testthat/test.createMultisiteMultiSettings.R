@@ -12,7 +12,7 @@ test_that("`createSitegroupMultiSettings` able to create a MultiSettings object 
     site_id = list("1000025731", "1000025732")
   )
   mockery::stub(
-    createSitegroupMultiSettings, 
+    createSitegroupMultiSettings,
     'PEcAn.DB::db.query',
     siteIds
   )
