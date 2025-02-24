@@ -66,7 +66,7 @@ createSitegroupMultiSettings <- function(
 #'   of site IDs.
 #' If \code{siteIds} is a data frame with a column named \code{id},
 #'   each resulting \code{run$site} block will contain all the site parameters
-#'   (lat/lon, site name, etc) that are specified in its other columns.
+#'   (lat, lon, site name, etc) that are specified in its other columns.
 #'
 #' @return A \code{MultiSettings} object with the same settings as
 #'   \code{templateSettings} but replicated \code{run$site} blocks,
@@ -92,7 +92,7 @@ createMultiSiteSettings <- function(templateSettings, siteIds) {
     getRunSettings,
     templateSettings = templateSettings)
   templateSettings[["run", global = FALSE]] <- runSettings
-  names(templateSettings$run) <- paste0("site.", ids)
+  templateSettings <- settingNames(templateSettings, paste0("site.", ids))
   return(templateSettings)
 }
 

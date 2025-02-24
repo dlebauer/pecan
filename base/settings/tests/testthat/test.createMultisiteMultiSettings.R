@@ -92,7 +92,7 @@ test_that("getRunSettings copies arbitrary site parameters", {
     templateSettings,
     list(id = "10", name = "aaa", lat = 44.3))
   expect_equal(run_settings$site$id, "10")
-  expect_equal(run_settings$site$lat, "44.3")
+  expect_equal(run_settings$site$lat, 44.3)
   expect_null(run_settings$site$lon)
 })
 
