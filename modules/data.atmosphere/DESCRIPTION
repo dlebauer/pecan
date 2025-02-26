@@ -76,9 +76,9 @@ Suggests:
 Remotes:
     github::adokter/suntools,
     github::chuhousen/amerifluxr,
+    github::ucanr-igis/caladaptr,
     github::ropensci/geonames,
     github::ropensci/nneo
-    github::ucanr-igis/caladaptr
 License: BSD_3_clause + file LICENSE
 Copyright: Authors
 LazyLoad: yes
