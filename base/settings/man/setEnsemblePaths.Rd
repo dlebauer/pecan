@@ -42,6 +42,11 @@ with curly braces wrapping any expressions to be interpolated.
 \code{{n}} will be replaced with each value of 1:\code{n_reps}, \code{{id}} will be
 replaced with the siteid of each site, and any other variables need to be
 passed as named arguments in \code{...}.
+
+Note that for consistency, every site in \code{settings} must contain an
+element named \verb{inputs$<input_type>} before you call this.
+If \verb{inputs$<input_type>$path} does not exist it will be created;
+if it does exist it will be overwritten.
 }
 \examples{
 s <- as.Settings(list(
