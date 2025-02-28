@@ -150,7 +150,7 @@ build_pathset <- function(n, glue_str = "./file_{n}.nc", ...) {
 
 # Recreates MultiSettings nesting in a template to be passed to modifyList
 #
-# More specifically, returns a list with result of build_pathset() addresable
+# More specifically, returns a list with result of build_pathset() addressable
 # as an element named `inputs$<input_type>$path`.
 # Why yes, this is a _very_ strong assumption about the XML structure that
 # needs to be checked before using it.
