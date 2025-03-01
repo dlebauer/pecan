@@ -92,11 +92,11 @@ setEnsemblePaths <- function(
     )
   )
 
-  # Now update all paths at once and return the result.
+  # Now insert all the updated paths and return the result.
   # Note that modifyList doesn't touch objects not listed in its template,
   # so other sections (settings$host, settings$run$<site>$site, etc.)
   # are unchanged here.
-  modifyList(settings, template_list)
+  utils::modifyList(settings, template_list)
 }
 
 
