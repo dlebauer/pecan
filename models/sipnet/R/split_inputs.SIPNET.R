@@ -32,10 +32,7 @@ split_inputs.SIPNET <- function(settings, start.time, stop.time, inputs, overwri
   #Changing the name of the files, so it would contain the name of the hour as well.
   formatted_start <- gsub(' ',"_", as.character(start.time))
   formatted_stop <- gsub(' ',"_", as.character(stop.time))
-  file <- paste0(outpath, "/", prefix, ".",
-                 paste0(formatted_start,
-                        "-",
-                       formatted_stop), ".clim")
+  file <- paste0(outpath, "/", prefix, ".", formatted_start, "-", formatted_stop, ".clim")
   
   if(file.exists(file) & !overwrite){
     return(file)
@@ -49,7 +46,7 @@ split_inputs.SIPNET <- function(settings, start.time, stop.time, inputs, overwri
     dplyr::mutate(Date = strptime(paste(.data$V2, .data$V3), format = "%Y %j",   tz = "UTC")%>% as.POSIXct()) %>%
     dplyr::mutate(Date = as.POSIXct(paste0(.data$Date,  ceiling(.data$V4), ":00"), format = "%Y-%m-%d %H:%M", tz = "UTC")) %>% 
     dplyr::filter(.data$Date >= start.time, .data$Date < stop.time) %>% 
-    dplyr::select(-Date)
+    dplyr::select(-.data$Date)
   
   
   ###### Write Met to file
