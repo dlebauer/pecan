@@ -11,6 +11,10 @@
 * `createMultiSiteSettings` argument `siteIds` now accepts data frames as well as the previously accepted numeric or character vectors. The data frame should have one site per row, uniquely identified by a mandatory `id` column. All columns of each row will become fields of the resulting `settings$run$site` block.
 * New function `setEnsemblePaths` inserts paths to your ensemble inputs (met, poolinitcond, etc) into every site's `inputs` block according to the filename pattern specified in a template string.
 
+## Fixed
+
+* Reading a multi-settings from XML now keeps the site bock names specified in the file instead of defaulting to `settings.[n]`.
+
 ## Removed
 
 * Internal helper function `getRunSettings` is no longer exported. As the documentation has long noted, it was not intended to be called directly.
