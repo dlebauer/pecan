@@ -60,43 +60,25 @@ setEnsemblePaths <- function(
   }
   input_type <- match.arg(input_type)
 
-  # Check that settings structure conforms to the assumptions we make below.
-  # Technically `modifyPath` would recursively create all missing components,
-  # and if `inputs$<type>$path` doesn't exist yet we'll let it be created.
-  # But if `inputs$<type>` or any higher-level block is missing, creating it
-  # here seems like asking for trouble.
-  has_input_entry <- purrr::map_lgl(
-    names(settings$run),
-    ~!is.null(settings$run[[.]]$inputs[[input_type]])
+  papply(
+    settings,
+    set_site_paths,
+    input_type = input_type,
+    n = n_reps,
+    glue_str = path_template,
+    ...
   )
-  if (!all(has_input_entry)) {
-    PEcAn.logger::logger.error(
-      "Every site must have an entry named",
-      paste0("`inputs$", input_type, "`"),
-      "before setEnsemblePaths will add a `paths` entry to it"
-    )
-  }
+}
 
-  # Assemble a list with the same structure as `settings`, containing new
-  # values for the paths to be replaced.
-  # Note that validity of the structure relies on `run` being a *named* list --
-  # the names are passed through from `settings$run` by lapply.
-  template_list <- list(
-    run = lapply(
-      X = settings$run,
-      FUN = embed_paths_in_list,
-      input_type = input_type,
-      n = n_reps,
-      glue_str = path_template,
-      ...
-    )
-  )
 
-  # Now insert all the updated paths and return the result.
-  # Note that modifyList doesn't touch objects not listed in its template,
-  # so other sections (settings$host, settings$run$<site>$site, etc.)
-  # are unchanged here.
-  utils::modifyList(settings, template_list)
+# Set pathset at one site,
+# inserting site id if path template contains `{id}`
+set_site_paths <- function(settings, input_type, ...) {
+  siteid <- settings$run$site$id
+  paths <- build_pathset(id = siteid, ...)
+  settings$run$inputs[[input_type]]$path <- paths
+
+  settings
 }
 
 
@@ -146,23 +128,4 @@ build_pathset <- function(n, glue_str = "./file_{n}.nc", ...) {
   glue::glue_data(.x = values, glue_str) |>
     as.list() |>
     stats::setNames(glue::glue("path{n}", n = n))
-}
-
-# Recreates MultiSettings nesting in a template to be passed to modifyList
-#
-# More specifically, returns a list with result of build_pathset() addressable
-# as an element named `inputs$<input_type>$path`.
-# Why yes, this is a _very_ strong assumption about the XML structure that
-# needs to be checked before using it.
-#
-# @param one site block from a MultiSettings
-# @param input_type met/poolinitcond/soilinitcond. See in setEnsemblePaths
-# @param ... passed on to build_pathset
-embed_paths_in_list <- function(loc, input_type, ...) {
-  list(
-    inputs = structure(
-      list(list(path = build_pathset(id = loc$site$id, ...))),
-      names = input_type
-    )
-  )
 }
