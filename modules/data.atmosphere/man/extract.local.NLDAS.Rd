@@ -5,7 +5,7 @@
 \title{Extract NLDAS from local download
 Extract NLDAS meteorology for a point from a local download of the full grid}
 \usage{
-\method{extract}{local.NLDAS}(
+extract.local.NLDAS(
   outfolder,
   in.path,
   start_date,

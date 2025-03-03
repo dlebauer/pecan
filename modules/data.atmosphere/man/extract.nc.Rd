@@ -4,7 +4,7 @@
 \alias{extract.nc}
 \title{extract.nc}
 \usage{
-\method{extract}{nc}(
+extract.nc(
   in.path,
   in.prefix,
   outfolder,
