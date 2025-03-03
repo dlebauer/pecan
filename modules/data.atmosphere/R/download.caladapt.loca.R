@@ -49,6 +49,7 @@
 #'  plot(z)
 #'  # There is also a caladaptr function ca_stars_read
 #'  # that returns a list of stars objects.
+
 #'  coords <- data.frame(lat = 36, lon = -120) |>
 #'    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
 #'  point_rasters <- download.caladapt.loca(
