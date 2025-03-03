@@ -49,15 +49,11 @@ jobs:
       run: ./scripts/add.models.sh
 
     # install sipnet
-    - name: Download SIPNET for macOS
-      run: |
-        curl -L -o sipnet-macos "https://drive.google.com/uc?export=download&id=1psNvSw77VcD5QdbSWeGNVQsbCmJokG2W"
-        chmod +x sipnet-macos
-
     - name: Download SIPNET for Linux
       run: |
-        curl -L -o sipnet-linux "https://github.com/PecanProject/sipnet/releases/download/v1.3.0/sipnet-linux-v1.3.0"
-        chmod +x sipnet-linux
+        mkdir -p ${GITHUB_WORKSPACE}/sipnet
+        curl -L -o ${GITHUB_WORKSPACE}/sipnet/sipnet "https://github.com/PecanProject/sipnet/releases/download/v1.3.0/sipnet-linux-v1.3.0"
+        chmod +x ${GITHUB_WORKSPACE}/sipnet/sipnet
 
     # compile PEcAn code
     - name: build
