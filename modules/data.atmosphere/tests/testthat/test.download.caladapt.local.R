@@ -17,7 +17,7 @@ point_sf <- data.frame(lon = -120, lat = 36) |>
 bad_point_sf <- data.frame(lon = -180, lat = 0) |>
     sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
-test_that("download.caladapt.loca returns a tibble with expected columns from polygon input", {
+test_that("download.caladapt.loca returns a tibble with expected columns for polygon input", {
   skip_on_cran()
   skip_on_ci()
   tmp_dir <- withr::local_tempdir()
@@ -39,7 +39,7 @@ test_that("download.caladapt.loca returns a tibble with expected columns from po
         c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster"),
         colnames(result)
     )
-    expect_true(all(file.exists(result$raster)))
+    expect_true(file.exists(result$raster))
 })
 
 test_that("download.caladapt.loca returns a tibble with expected columns for point input", {
@@ -64,7 +64,7 @@ test_that("download.caladapt.loca returns a tibble with expected columns for poi
         c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster"),
         colnames(result)
     )
-    expect_true(all(file.exists(result$raster)))
+    expect_true(file.exists(result$raster))
 })
 
 
@@ -95,7 +95,7 @@ test_that("download.caladapt.loca handles SpatVector objects", {
         c("var", "gcm", "scenario", "period", "start_year", "end_year", "raster"),
         colnames(result)
     )
-    expect_true(all(file.exists(result$raster)))
+    expect_true(file.exists(result$raster))
 })
 
 ## test that downloaded files are valid

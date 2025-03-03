@@ -11,67 +11,72 @@
 #' - [Cal Adapt Data Catalog Documentation](https://berkeley-gif.github.io/caladapt-docs/data-catalog.html)
 #' - [Cal-Adapt Loca Data Catalog](https://albers.cnr.berkeley.edu/data/scripps/loca/met/)
 #'
-#' @param sf_obj An `sf`, `sfc`, or `SpatVector` row representing the points or polygon boundary
-#'   (required for `download_caladapt_loca_raster()`).
+#' @param outfolder Character. Output directory path to store downloaded data. (Required, no default)
+#' @param start_date Numeric. Start date (year) for data retrieval. Accepts YYYY-MM-DD format, but caladaptr functions only use the year.
+#' @param end_date Numeric. End date (year) for data retrieval. Accepts YYYY-MM-DD format, but caladaptr functions only use the year.
+#' @param sf_obj An `sf`, `sfc`, or `SpatVector` object representing the points or polygon boundary.
 #' @param var Character. Climate variable to retrieve. One of "tasmax", "tasmin", "pr",
 #' "swe", "baseflow", "et", "rainfall",
 #' "runoff", "snowfall", "soilMoist1", "Tair".
 #' @param gcm Character. GCM name. One of "HadGEM2-ES", "CNRM-CM5", "CanESM2", "MIROC5", "ACCESS1-0",
 #' "CCSM4", "CESM1-BGC", "CMCC-CMS", "GFDL-CM3", "HadGEM2-CC", "ens32avg",
 #' "ens32max", "ens32min".
-#' @param scenario Character. Emission scenario. One of "historical", "rcp45", "rcp85". Historical (default)
-#' period covers 1950-2005. RCP45 and RCP85 scenarios cover 2006-2100.
+#' @param scenario Character. Emission scenario. One of "historical", "rcp45", "rcp85".
 #' @param period Character. Time aggregation. One of "day", "month", "year", "30yavg".
-#' @param start_year Numeric. Start year for data retrieval.
-#' @param end_year Numeric. End year for data retrieval.
-#' @param out_dir Character. Output directory path to store downloaded data.
-#' @param raster_path Character. (Optional) File path to a local raster file. If provided, the function
-#' will load the raster from this path instead of using the Cal-Adapt API.
 #'
 #' @return A tibble row with appended climate raster in the `raster` column.
 #' For points, the row will also include `lat` and `lon` columns.
 #'
 #' @examples
 #' \dontrun{
-#' # Polygon-level example
-#' yolo_polygon <- ca_aoipreset_geom("counties") |>
-#'   filter(state_name == "California") |>
-#'   filter(name == "Yolo") |>
-#'   select(state_name, county_name = name, geom) |>
-#'   st_transform(4326)
-#'
-#' polygon_rasters <- download_caladapt_loca(
-#'   sf_obj = yolo_polygon,
-#'   var = "pr",
-#'   gcm = "CNRM-CM5",
-#'   scenario = "rcp85",
-#'   period = "year",
-#'   start_year = 2006, end_year = 2100,
-#'   out_dir = "data"
-#' )
-#' coords <- data.frame(lat = 36, lon = -120) |>
-#'   st_as_sf(coords = c("lon", "lat"), crs = 4326)
-#' point_rasters <- download_caladapt_loca_raster(
-#'   sf_obj = coords,
-#'   var = "pr",
-#'   gcm = "CNRM-CM5",
-#'   scenario = "rcp85",
-#'   period = "year",
-#'   start_year = 2006, end_year = 2100,
-#'   out_dir = "data"
-#' )
+#'  library(caladaptr)
+#'  yolo_polygon <- caladaptr::ca_aoipreset_geom("counties") |>
+#'    dplyr::filter(state_name == "California") |>
+#'    dplyr::filter(name == "Yolo") |>
+#'    dplyr::select(state_name, county_name = name, geom) |>
+#'    sf::st_transform(4326)
+
+#'  polygon_rasters <- download.caladapt.loca(
+#'    outfolder = tempdir(),
+#'    start_date = 2006, end_date = 2100,
+#'    sf_obj = yolo_polygon,
+#'    var = "pr",
+#'    gcm = "CNRM-CM5",
+#'    scenario = "rcp85",
+#'    period = "year"
+#'  )
+#'  z <- stars::read_stars(polygon_rasters$raster)
+#'  plot(z)
+#'  # There is also a caladaptr function ca_stars_read
+#'  # that returns a list of stars objects.
+#'  coords <- data.frame(lat = 36, lon = -120) |>
+#'    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+#'  point_rasters <- download.caladapt.loca(
+#'    outfolder = tempdir(),
+#'    start_date = 2006, end_date = 2100,
+#'    sf_obj = coords,
+#'    var = "pr",
+#'    gcm = "CNRM-CM5",
+#'    scenario = "rcp85",
+#'    period = "year"
+#'  )
 #' }
-download_caladapt_loca_raster <- function(sf_obj,
-                                          var = "pr",
-                                          gcm = "HadGEM2-ES",
-                                          scenario = "historical",
-                                          period = "year",
-                                          start_year, end_year,
-                                          out_dir = "data",
-                                          raster_path = NULL) {
-  # First validate the spatial object.
+#' @export
+download.caladapt.loca <- function(outfolder, start_date, end_date, sf_obj, 
+                                   var, gcm, scenario, period) {
+  
+  # following is required so that caladaptr functions can be used (seems to be a bug with caladaptr functions)
+  data(list = c("ca_baseurl", "gcms", "cvars", "periods", "scenarios"), package = "caladaptr")
+  # handled separately b/c fixes object as side effect
   sf_obj <- .validate_sf_obj(sf_obj)
-  .validate_caladapt_fn_inputs(var, gcm, scenario, period, start_year, end_year, sf_obj, raster_path, out_dir)
+  start_year <- .validate_years(start_date)
+  end_year <- .validate_years(end_date)
+
+  # Validate inputs using extracted years
+  .validate_caladapt_fn_inputs(
+    outfolder, start_year, end_year, 
+    var, gcm, scenario, period
+  )
 
   geom_type <- unique(sf::st_geometry_type(sf_obj))
   
@@ -91,7 +96,7 @@ download_caladapt_loca_raster <- function(sf_obj,
             caladaptr::ca_period(period) |>
             caladaptr::ca_cvar(var) |>
             caladaptr::ca_years(start = start_year, end = end_year)
-          y <- request |> caladaptr::ca_getrst_stars(out_dir = out_dir)
+          y <- request |> caladaptr::ca_getrst_stars(out_dir = outfolder)
           block |> dplyr::mutate(
             var = var,
             gcm = gcm,
@@ -115,7 +120,7 @@ download_caladapt_loca_raster <- function(sf_obj,
     caladaptr::ca_cvar(var) |>
     caladaptr::ca_years(start = start_year, end = end_year)
   
-  rast_file <- .try_get_raster(request, out_dir)
+  rast_file <- .try_get_raster(request, outfolder)
   if (is.null(rast_file)) { rast_file <- NA }
   
   res <- tibble::tibble(
@@ -132,101 +137,84 @@ download_caladapt_loca_raster <- function(sf_obj,
 
 ## Helper functions (using PEcAn.logger instead of stop)
 
-.validate_caladapt_fn_inputs <- function(var, gcm, scenario, period, start_year, end_year, sf_obj, raster_path, out_dir) {
-  .validate_dates(scenario, start_year, end_year)
+.validate_caladapt_fn_inputs <- function(outfolder, start_date, end_date, 
+                                          var, gcm, scenario, period) {
+  .validate_out_dir(outfolder)
+  .validate_dates(scenario, start_date, end_date)
+  .validate_var(var)
   .validate_gcm(gcm)
   .validate_scenario(scenario)
   .validate_period(period)
-  .validate_var(var)
-  .validate_raster_path(raster_path)
-  .validate_out_dir(out_dir)
   invisible(TRUE)
 }
 
-.validate_dates <- function(scenario, start_year, end_year) {
-  if (start_year > end_year) {
-    PEcAn.logger::logger.error("Start year must be less than or equal to end year")
+.validate_dates <- function(scenario, start_date, end_date) {
+  if (is.character(start_date)) {
+    start_date <- as.numeric(substr(start_date, 1, 4))
+  }
+  if (start_date > end_date) {
+    PEcAn.logger::logger.error("Start date must be less than or equal to end date")
     return(invisible(NULL))
   }
-  if (start_year < 1950 || end_year > 2100) {
-    PEcAn.logger::logger.error("Start year must be >= 1950 and end year <= 2100")
+  if (start_date < 1950 || end_date > 2100) {
+    PEcAn.logger::logger.error("Start date must be >= 1950 and end date <= 2100")
     return(invisible(NULL))
   }
-  if (scenario == "historical" && (start_year < 1950 || end_year > 2005)) {
+  if (scenario == "historical" && (start_date < 1950 || end_date > 2005)) {
     PEcAn.logger::logger.error("Historical period only covers 1950-2005")
     return(invisible(NULL))
   }
-  if (scenario %in% c("rcp45", "rcp85") && (start_year < 2006 || end_year > 2100)) {
+  if (scenario %in% c("rcp45", "rcp85") && (start_date < 2006 || end_date > 2100)) {
     PEcAn.logger::logger.error("RCP45 and RCP85 scenarios cover 2006-2100")
     return(invisible(NULL))
   }
   invisible(TRUE)
 }
 
+
+
 .validate_gcm <- function(gcm) {
-  if (!exists("gcms", envir = environment())) {
-    data(gcms, package = "caladaptr", envir = environment())
-  }
-  if (!gcm %in% gcms) {
-    PEcAn.logger::logger.error("Invalid GCM name, must be one of: ", paste(gcms, collapse = ", "))
+  if (!gcm %in% caladaptr::gcms) {
+    PEcAn.logger::logger.error(
+      "Invalid GCM name, must be one of: ",
+      paste(caladaptr::gcms, collapse = ", ")
+    )
     return(invisible(NULL))
   }
   invisible(TRUE)
 }
 
 .validate_scenario <- function(scenario) {
-  if (!exists("scenarios", envir = environment())) {
-    data(scenarios, package = "caladaptr", envir = environment())
-  }
-  if (!scenario %in% scenarios) {
-    PEcAn.logger::logger.error("Invalid scenario, must be one of: ", paste(scenarios, collapse = ", "))
+  if (!scenario %in% caladaptr::scenarios) {
+    PEcAn.logger::logger.error(
+      "Invalid scenario, must be one of: ",
+      paste(caladaptr::scenarios, collapse = ", ")
+    )
     return(invisible(NULL))
   }
   invisible(TRUE)
 }
 
 .validate_period <- function(period) {
-  if (!exists("periods", envir = environment())) {
-    data(periods, package = "caladaptr", envir = environment())
-  }
-  if (!period %in% periods) {
-    PEcAn.logger::logger.error("Invalid period, must be one of: ", paste(periods, collapse = ", "))
+  valid_periods <- c("day", "month", "year", "30yavg")
+  if (!period %in% caladaptr::periods) {
+    PEcAn.logger::logger.error(
+      "Invalid period, must be one of: ",
+      paste(caladaptr::periods, collapse = ", ")
+    )
     return(invisible(NULL))
   }
   invisible(TRUE)
 }
 
-.validate_var <- function(var) {
-  if (!exists("cvars", envir = environment())) {
-    data(cvars, package = "caladaptr", envir = environment())
-  }
-  if (!var %in% cvars) {
-    PEcAn.logger::logger.error("Invalid variable, must be one of: ", paste(cvars, collapse = ", "))
+.validate_out_dir <- function(outfolder) {
+  if (!is.character(outfolder)) {
+    PEcAn.logger::logger.error("Output folder must be a character string")
     return(invisible(NULL))
   }
-  invisible(TRUE)
-}
-
-.validate_raster_path <- function(raster_path) {
-  if (!is.null(raster_path) && !is.character(raster_path)) {
-    PEcAn.logger::logger.error("Raster path must be a character string")
-    return(invisible(NULL))
-  }
-  if (!is.null(raster_path) && !file.exists(raster_path)) {
-    PEcAn.logger::logger.error("The specified raster file does not exist: ", raster_path)
-    return(invisible(NULL))
-  }
-  invisible(TRUE)
-}
-
-.validate_out_dir <- function(out_dir) {
-  if (!is.character(out_dir)) {
-    PEcAn.logger::logger.error("Output directory must be a character string")
-    return(invisible(NULL))
-  }
-  if (!dir.exists(out_dir)) {
-    dir.create(out_dir, recursive = TRUE)
-    PEcAn.logger::logger.info("Created new output directory: ", out_dir)
+  if (!dir.exists(outfolder)) {
+    dir.create(outfolder, recursive = TRUE)
+    PEcAn.logger::logger.info("Created new output directory: ", outfolder)
   }
   invisible(TRUE)
 }
@@ -294,4 +282,33 @@ download_caladapt_loca_raster <- function(sf_obj,
       }
     }
   )
+}
+
+.validate_years <- function(date){
+  if (is.numeric(date) && date >= 1950 && date <= 2100) {
+    return(as.integer(date))
+  }
+  if (is.character(date)) {
+    date <- lubridate::year(lubridate::ymd(date))
+    if (is.na(date)) {
+      PEcAn.logger::logger.error("Invalid date. Must be in YYYY or YYYY-MM-DD format.")
+      return(NA)
+    }
+  }
+  if(date < 1950 || date > 2100) {
+    PEcAn.logger::logger.error("Date must be between 1950 and 2100")
+    return(NA)
+  }
+  return(date)
+}
+
+.validate_var <- function(var) {
+  if (!var %in% caladaptr::cvars) {
+    PEcAn.logger::logger.error(
+      "Invalid variable, must be one of: ",
+      paste(caladaptr::cvars, collapse = ", ")
+    )
+    return(invisible(NULL))
+  }
+  invisible(TRUE)
 }

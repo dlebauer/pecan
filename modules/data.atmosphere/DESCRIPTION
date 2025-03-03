@@ -24,7 +24,6 @@ Imports:
     amerifluxr,
     assertthat,
     arrow,
-    caladaptr,
     curl,
     dplyr (>= 0.8.1),
     geonames (> 0.998),
@@ -60,6 +59,7 @@ Imports:
     xts,
     zoo
 Suggests:
+    caladaptr,
     doParallel,
     foreach,
     furrr,

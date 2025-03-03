@@ -4,7 +4,7 @@
 \alias{extract.nc.ERA5}
 \title{ERA5_extract}
 \usage{
-extract.nc.ERA5(
+\method{extract}{nc.ERA5}(
   slat,
   slon,
   in.path,

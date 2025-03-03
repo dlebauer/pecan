@@ -5,7 +5,7 @@
 \title{Extract NLDAS from local download
 Extract NLDAS meteorology for a point from a local download of the full grid}
 \usage{
-extract.local.CMIP5(
+\method{extract}{local.CMIP5}(
   outfolder,
   in.path,
   start_date,
