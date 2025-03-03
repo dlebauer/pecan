@@ -279,6 +279,7 @@
 "PEcAn.data.land","*","modules/assim.sequential","Suggests",TRUE
 "PEcAn.data.land","*","modules/benchmark","Suggests",TRUE
 "PEcAn.data.remote","*","base/all","Depends",TRUE
+"PEcAn.data.remote","*","base/workflow","Imports",TRUE
 "PEcAn.data.remote","*","modules/assim.sequential","Suggests",TRUE
 "PEcAn.DB","*","base/all","Depends",TRUE
 "PEcAn.DB","*","base/qaqc","Imports",TRUE
