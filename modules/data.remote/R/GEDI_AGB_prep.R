@@ -1,13 +1,8 @@
 #' Prepare L4A GEDI above ground biomass (AGB) data for the state data assimilation (SDA) workflow.
-#' This function is built upon the modified `l4_download` function within the `GEDI4R` package in need for a better parallel computation.
-#' @details During the first use, users will be ask to enter their Earth Explore
-#'  login Information for downloading the data. If you don't have already an
-#'  account, register at https://urs.earthdata.nasa.gov/users/new.
-#'  These information will be saved in outdir as a netrc
-#'  file. This function uses the foreach package for
-#'  downloading files in parallel, with the
-#'  doParallel configuration. If a file with the same
-#'  name is already presented in outdir it will be overwrite.
+#' @details During the first use, users will need to create the 
+#'  `.nasadaacapirc` file in the out folder where the first and second lines 
+#'  are the username and password on the NASA Earth Explore server. 
+#'  If you don't have an account, register at https://urs.earthdata.nasa.gov/users/new.
 #'
 #' @param site_info List: A list including site_id, longitude, and latitude.
 #' @param time_points Character: A vector of date contains target dates (in YYYY-MM-DD).
@@ -16,7 +11,7 @@
 #' @param search_window Character: search window (any length of time. e.g., 6 month) for locate available GEDI AGB values.
 #' @param bbox Numeric: the vector (in xmin, xmax, ymin, and ymax) that covers all the sites in the site_info object (default is NULL).
 #' @param batch Boolean: determine if we want to submit jobs to the queue or not (default is FALSE).
-#' @param prerun Character: series of pre-launch shell command to before running the shell job (default is NULL).
+#' @param prerun Character: series of pre-launch shell command before running the shell job (default is NULL).
 #' @param num.folder Numeric: the number of batch folders to be created when submitting jobs to the queue.
 #' @param cores Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.
 #'
