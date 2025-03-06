@@ -305,9 +305,45 @@ met2model.SIPNET <- function(in.path, in.prefix, outfolder, start_date, end_date
     }
     
   }  ## end loop over years
-  
+
   if (!is.null(out)) {
-    
+
+    # Sipnet does not know how to handle missing values in clim files.
+    # -- No, say it louder: Missing values send Sipnet into _infinite loops_.
+    # Let's remove these with warnings, hmm?
+    if (anyNA(out)) {
+      n_all <- nrow(out)
+
+      out <- na.omit(out)
+      n_complete <- nrow(out)
+      PEcAn.logger::logger.warn(
+        "Omitting", n_all - n_complete, "rows (of", n_all, "total)",
+        "because they contain missing values, which SIPNET does not allow."
+      )
+
+      # Maybe overkill, but will help users decide what action to take
+      gapped_times <- as.POSIXct(
+        paste(
+          out[, 2], #year
+          out[, 3], #yday
+          floor(out[, 4]), #hour
+          floor((60 * out[, 4]) %% 60), #minute
+          floor((3600 * out[, 4]) %% 60) # second
+        ),
+        format = "%Y %j %H %M %S"
+      )
+      gapped_dt <- diff(gapped_times)
+      PEcAn.logger::logger.warn(
+        "Result starts", min(gapped_times), ", ends", max(gapped_times),
+        ", and has time steps that range from",
+        min(dt), "to", max(dt), units(gapped_dt), ".",
+        "It is up to you to decide if this is usable for your simulation."
+      )
+
+      results$start_date <- strftime(min(gapped_times), "%Y-%m-%d")
+      results$end_date <- strftime(max(gapped_times), "%Y-%m-%d")
+    }
+
     ## write output
     utils::write.table(out, out.file.full, quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
     return(invisible(results))
