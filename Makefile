@@ -101,7 +101,7 @@ depends = .doc/$(1) .install/$(1) .check/$(1) .test/$(1)
 
 ### Rules
 
-.PHONY: all install check test document shiny \
+.PHONY: all install check test shiny pkgdocs \
             check_base check_models check_modules document help
 
 all: install document
@@ -114,9 +114,8 @@ check_modules: $(BASE_I) $(MODULES_C)
 document: $(ALL_PKGS_D) .doc/base/all
 
 pkgdocs:
-	Rscript scripts/build_pkgdown.R $(ALL_PKGS) || exit 1
+	Rscript scripts/build_pkgdown.R $(ALL_PKGS) base/all || exit 1
 	
-.PHONY: all install check test document shiny pkgdocs
 
 install: $(ALL_PKGS_I) .install/base/all
 check: $(ALL_PKGS_C) .check/base/all
