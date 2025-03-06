@@ -27,12 +27,12 @@ test_that("Met conversion runs without error", {
   expect_true(file.exists(result[["file"]][[1]]))
 })
 
-test_that("Missing data is removed with a warning", {
+test_that("Missing data throws an error", {
   full_nc <- system.file("test-data", "CRUNCEP.2000.nc", package = "PEcAn.utils")
   withr::with_tempdir({
     add_gaps_to_nc(full_nc, "gapped.2000.nc")
-    gap_msg <- capture.output(
-      gap_res <- met2model.SIPNET(
+    msg <- capture.output(
+      result <- met2model.SIPNET(
         in.path = ".",
         in.prefix = "gapped",
         outfolder = ".",
@@ -41,9 +41,8 @@ test_that("Missing data is removed with a warning", {
       ),
       type = "message"
     )
-    expect_match(gap_msg, "22 rows (of 1464 total)", all = FALSE, fixed = TRUE)
-    expect_equal(gap_res$start_date, "2000-01-02")
-    gap_tbl <- read.table(gap_res[["file"]], header = FALSE)
-    expect_equal(nrow(gap_tbl), 366 * 4 - 22)
+    expect_match(msg, "22 (of 1464 total) rows", all = FALSE, fixed = TRUE)
+    expect_null(result)
+    expect_length(list.files(".", "*.clim"), 0)
   })
 })

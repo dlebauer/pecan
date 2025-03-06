@@ -67,11 +67,10 @@ Always  0.6 from this function; PEcAn configures SIPNET to calculate it
 internally.
 }
 
-Input rows containing NAs in any column are removed with a warning.
-This ensures the output is readable by SIPNET (which does not allow missing
-values in its inputs), but does not do any correction for the resulting
-gaps in the time series. If your file contains more than incidental missing
-values, consider using a formal gap-filling method before calling met2model.
+SIPNET does not allow missing values in its inputs. IF the result contains
+NAs after conversion, no file is written and the process returns an error.
+To fix this, consider using a formal gap-filling method (such as
+\code{PEcAn.data.atmosphere::metgapfill()}) before calling met2model.
 }
 \author{
 Luke Dramko, Michael Dietze, Alexey Shiklomanov, Rob Kooper

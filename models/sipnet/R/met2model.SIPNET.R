@@ -22,11 +22,10 @@
 #'      Always  0.6 from this function; PEcAn configures SIPNET to calculate it
 #'      internally.
 #'
-#' Input rows containing NAs in any column are removed with a warning.
-#' This ensures the output is readable by SIPNET (which does not allow missing
-#' values in its inputs), but does not do any correction for the resulting
-#' gaps in the time series. If your file contains more than incidental missing
-#' values, consider using a formal gap-filling method before calling met2model.
+#' SIPNET does not allow missing values in its inputs. If the result contains
+#' NAs after conversion, no file is written and the process returns an error.
+#' To fix this, consider using a formal gap-filling method such as
+#' `PEcAn.data.atmosphere::metgapfill()` before calling met2model.
 #'
 #' @md
 #' @return a dataframe containing information about the files created
@@ -333,38 +332,15 @@ met2model.SIPNET <- function(in.path, in.prefix, outfolder, start_date, end_date
 
     # Sipnet does not know how to handle missing values in clim files.
     # -- No, say it louder: Missing values send Sipnet into _infinite loops_.
-    # Let's remove these with warnings, hmm?
+    # Let's not do that, hmm?
     if (anyNA(out)) {
-      n_all <- nrow(out)
-
-      out <- na.omit(out)
-      n_complete <- nrow(out)
-      PEcAn.logger::logger.warn(
-        "Omitting", n_all - n_complete, "rows (of", n_all, "total)",
-        "because they contain missing values, which SIPNET does not allow."
+      n_bad <- nrow(out) - nrow(na.omit(out))
+      PEcAn.logger::logger.error(
+        "Result contains", n_bad, "(of", nrow(out), "total)",
+        "rows with missing values, which are not allowed in SIPNET inputs.",
+        "No output written."
       )
-
-      # Maybe overkill, but will help users decide what action to take
-      gapped_times <- as.POSIXct(
-        paste(
-          out[, 2], #year
-          out[, 3], #yday
-          floor(out[, 4]), #hour
-          floor((60 * out[, 4]) %% 60), #minute
-          floor((3600 * out[, 4]) %% 60) # second
-        ),
-        format = "%Y %j %H %M %S"
-      )
-      gapped_dt <- diff(gapped_times)
-      PEcAn.logger::logger.warn(
-        "Result starts", min(gapped_times), ", ends", max(gapped_times),
-        ", and has time steps that range from",
-        min(dt), "to", max(dt), units(gapped_dt), ".",
-        "It is up to you to decide if this is usable for your simulation."
-      )
-
-      results$start_date <- strftime(min(gapped_times), "%Y-%m-%d")
-      results$end_date <- strftime(max(gapped_times), "%Y-%m-%d")
+      return(invisible(NULL))
     }
 
     ## write output
