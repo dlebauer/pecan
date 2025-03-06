@@ -9,20 +9,35 @@ GEDI_AGB_prep(
   site_info,
   time_points,
   outdir = file.path(getwd(), "GEDI_AGB"),
-  buffer = 0.01,
-  search_window = "3 month"
+  buffer = 0.005,
+  search_window = "6 month",
+  bbox = NULL,
+  batch = FALSE,
+  prerun = NULL,
+  num.folder = NULL,
+  cores = parallel::detectCores()
 )
 }
 \arguments{
-\item{site_info}{A list including site_id, longitude, and latitude.}
+\item{site_info}{List: A list including site_id, longitude, and latitude.}
 
-\item{time_points}{A vector of date contains target dates (in YYYY-MM-DD).}
+\item{time_points}{Character: A vector of date contains target dates (in YYYY-MM-DD).}
 
-\item{outdir}{Directory where the final CSV file will be stored.}
+\item{outdir}{Character: Directory where the final CSV file will be stored.}
 
-\item{buffer}{buffer distance (in degrees) for locate GEDI AGB searching box (default is 0.01 [~ 1 km]).}
+\item{buffer}{Numeric: buffer distance (in degrees) for locate GEDI AGB searching box (default is 0.005 [~ 500 m]).}
 
-\item{search_window}{search window (any length of time. e.g., 3 month) for locate available GEDI AGB values.}
+\item{search_window}{Character: search window (any length of time. e.g., 6 month) for locate available GEDI AGB values.}
+
+\item{bbox}{Numeric: the vector (in xmin, xmax, ymin, and ymax) that covers all the sites in the site_info object (default is NULL).}
+
+\item{batch}{Boolean: determine if we want to submit jobs to the queue or not (default is FALSE).}
+
+\item{prerun}{Character: series of pre-launch shell command to before running the shell job (default is NULL).}
+
+\item{num.folder}{Numeric: the number of batch folders to be created when submitting jobs to the queue.}
+
+\item{cores}{Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.}
 }
 \value{
 A data frame containing AGB and sd for each site and each time step.
@@ -52,11 +67,11 @@ site_info <- settings \%>\%
     site.list$lat <- as.numeric(site.list$lat)
     site.list$lon <- as.numeric(site.list$lon)
     list(site_id=site.list$id, lat=site.list$lat, lon=site.list$lon, site_name=site.list$name)
-  })\%>\% 
+  }) \%>\% 
   dplyr::bind_rows() \%>\% 
   as.list()
 time_points <- seq(start.date, end.date, by = time.step)
-buffer <- 0.01
+buffer <- 0.005
 outdir <- getwd()
 GEDI_AGB <- GEDI_AGB_prep(site_info, time_points, outdir, buffer)
 }
