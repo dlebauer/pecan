@@ -16,6 +16,7 @@
 #' @param cores Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.
 #'
 #' @return A data frame containing AGB and sd for each site and each time step.
+#' @export
 #' 
 #' @examples
 #' \dontrun{
@@ -66,16 +67,8 @@ GEDI_AGB_prep <- function(site_info,
   if (!dir.exists(outdir)) {
     dir.create(outdir)
   }
-  # create the download folder for downloaded GEDI tiles.
-  download.path <- file.path(outdir, "download")
-  if (!dir.exists(download.path)) {
-    dir.create(download.path)
-  } else {
-    unlink(download.path, recursive = T)
-    dir.create(download.path)
-  }
   # detect if we generate the NASA DAAC credential file.
-  if (!file.exists(outdir, ".nasadaacapirc")) {
+  if (!file.exists(file.path(outdir, ".nasadaacapirc"))) {
     PEcAn.logger::logger.info("There is no credential file for NASA DAAC server.")
     PEcAn.logger::logger.info("Please create the .nasadaacapirc file within the out folder.")
     PEcAn.logger::logger.info("The first and second lines of the file are the username and password.")
@@ -97,12 +90,21 @@ GEDI_AGB_prep <- function(site_info,
     # create start and end dates.
     start_date <- seq(time_points[i], length.out = 2, by = paste0("-", search_window))[2]
     end_date <- seq(time_points[i], length.out = 2, by = search_window)[2]
+    # create the download folder for downloaded GEDI tiles.
+    download.path <- file.path(outdir, "download")
+    if (!dir.exists(download.path)) {
+      dir.create(download.path)
+    } else {
+      # delete previous downloaded files.
+      unlink(download.path, recursive = T)
+      dir.create(download.path)
+    }
     # download GEDI tiles.
     files <- NASA_DAAC_download(ul_lat = bbox[4], 
                                 ul_lon = bbox[1], 
                                 lr_lat = bbox[3], 
                                 lr_lon = bbox[2], 
-                                ncore = parallel::detectCores(), 
+                                ncore = cores, 
                                 from = start_date, 
                                 to = end_date, 
                                 outdir = download.path, 
@@ -140,6 +142,8 @@ GEDI_AGB_prep <- function(site_info,
                                        buffer = as.numeric(buffer), 
                                        cores = as.numeric(cores))
     }
+    # delete previous downloaded files.
+    unlink(download.path, recursive = T)
     # loop over sites.
     for (j in seq_len(nrow(agb))) {
       # skip NA observations.
@@ -167,6 +171,8 @@ GEDI_L4A_Finder <- function(files,
                             site_info, 
                             buffer = 0.005, 
                             cores = parallel::detectCores()) {
+  # report current workflow.
+  PEcAn.logger::logger.info("Intersecting GEDI tiles with sites.")
   # grab coordinates from site_info object.
   lats <- site_info$lat
   lons <- site_info$lon
@@ -243,6 +249,8 @@ GEDI_L4A_Finder_batch <- function(files,
                                   buffer = 0.005, 
                                   cores = parallel::detectCores(), 
                                   prerun = NULL) {
+  # report current workflow.
+  PEcAn.logger::logger.info("Intersecting GEDI tiles with sites.")
   # how many files do we have.
   L <- length(files)
   # how many folders should be created.
@@ -339,6 +347,8 @@ GEDI_L4A_2_mean_var <- function(site_info,
                                 which.point.in.which.file, 
                                 buffer = 0.005, 
                                 cores = parallel::detectCores()) {
+  # report current workflow.
+  PEcAn.logger::logger.info("Estimating AGB mean and uncertainty.")
   # initialize agb mean and sd lists for each site.
   agb_mean <- agb_sd <- rep(NA, length(which.point.in.which.file))
   # initialize parallel.
@@ -424,6 +434,9 @@ GEDI_L4A_2_mean_var <- function(site_info,
   # stop parallel.
   parallel::stopCluster(cl)
   foreach::registerDoSEQ()
+  agb_mean_sd <- data.frame(site_id = site_info$site_id, 
+                            agb_mean = agb_mean_sd %>% purrr::map("agb_mean")%>%unlist, 
+                            agb_sd = agb_mean_sd %>% purrr::map("agb_sd")%>%unlist)
   return(agb_mean_sd)
 }
 #' Submit jobs through `qsub` for the `GEDI_L4A_2_mean_var` function.
@@ -447,6 +460,8 @@ GEDI_L4A_2_mean_var.batch <- function(site_info,
                                       buffer = 0.005, 
                                       cores = parallel::detectCores(), 
                                       prerun = NULL) {
+  # report current workflow.
+  PEcAn.logger::logger.info("Estimating AGB mean and uncertainty.")
   # how many files do we have.
   L <- length(which.point.in.which.file)
   # how many folders should be created.
@@ -476,7 +491,8 @@ GEDI_L4A_2_mean_var.batch <- function(site_info,
     } else {
       dir.create(folder.path)
       # write parameters.
-      configs <- list(site_info = list(lat = site_info$lat[head.num:tail.num],
+      configs <- list(site_info = list(site_id = site_info$site_id[head.num:tail.num],
+                                       lat = site_info$lat[head.num:tail.num],
                                        lon = site_info$lon[head.num:tail.num]),
                       which.point.in.which.file = which.point.in.which.file[head.num:tail.num],
                       buffer = buffer,
@@ -517,12 +533,8 @@ GEDI_L4A_2_mean_var.batch <- function(site_info,
   }
   # assemble results.
   PEcAn.logger::logger.info("Assembling results.")
-  # out.configs <- c()
   agb <- file.path(folder.paths, "res.rds") %>% 
-    purrr::map(readRDS) %>% 
-    do.call(what = "c")
-  agb <- data.frame(site_id = site_info$site_id, 
-                    agb_mean = agb %>% purrr::map("agb_mean")%>%unlist, 
-                    agb_sd = agb %>% purrr::map("agb_sd")%>%unlist)
+    purrr::map(readRDS)
+  agb <- do.call(rbind, agb)
   return(agb)
 }
