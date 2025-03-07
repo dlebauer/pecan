@@ -677,6 +677,7 @@
 "withr","*","models/basgra","Suggests",FALSE
 "withr","*","models/ed","Suggests",FALSE
 "withr","*","models/sibcasa","Suggests",FALSE
+"withr","*","models/sipnet","Suggests",FALSE
 "withr","*","modules/allometry","Suggests",FALSE
 "withr","*","modules/data.atmosphere","Suggests",FALSE
 "XML","*","base/workflow","Imports",FALSE
