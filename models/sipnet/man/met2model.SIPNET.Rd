@@ -67,10 +67,10 @@ Always  0.6 from this function; PEcAn configures SIPNET to calculate it
 internally.
 }
 
-SIPNET does not allow missing values in its inputs. IF the result contains
+SIPNET does not allow missing values in its inputs. If the result contains
 NAs after conversion, no file is written and the process returns an error.
-To fix this, consider using a formal gap-filling method (such as
-\code{PEcAn.data.atmosphere::metgapfill()}) before calling met2model.
+To fix this, consider using a formal gap-filling method such as
+\code{PEcAn.data.atmosphere::metgapfill()} before calling met2model.
 }
 \author{
 Luke Dramko, Michael Dietze, Alexey Shiklomanov, Rob Kooper
