@@ -334,7 +334,7 @@ met2model.SIPNET <- function(in.path, in.prefix, outfolder, start_date, end_date
     # -- No, say it louder: Missing values send Sipnet into _infinite loops_.
     # Let's not do that, hmm?
     if (anyNA(out)) {
-      n_bad <- nrow(out) - nrow(na.omit(out))
+      n_bad <- nrow(out) - nrow(stats::na.omit(out))
       PEcAn.logger::logger.error(
         "Result contains", n_bad, "(of", nrow(out), "total)",
         "rows with missing values, which are not allowed in SIPNET inputs.",
