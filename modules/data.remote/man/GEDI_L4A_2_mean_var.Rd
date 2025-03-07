@@ -2,7 +2,7 @@
 % Please edit documentation in R/GEDI_AGB_prep.R
 \name{GEDI_L4A_2_mean_var}
 \alias{GEDI_L4A_2_mean_var}
-\title{GEDI_L4A_2_mean_var}
+\title{Aggregate AGB mean and uncertainty from the GEDI level4A tiles.}
 \usage{
 GEDI_L4A_2_mean_var(
   site_info,

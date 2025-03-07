@@ -2,7 +2,7 @@
 % Please edit documentation in R/GEDI_AGB_prep.R
 \name{GEDI_L4A_2_mean_var.batch}
 \alias{GEDI_L4A_2_mean_var.batch}
-\title{GEDI_L4A_2_mean_var}
+\title{Submit jobs through `qsub` for the `GEDI_L4A_2_mean_var` function.}
 \usage{
 GEDI_L4A_2_mean_var.batch(
   site_info,
