@@ -332,7 +332,6 @@ GEDI_L4A_Finder_batch <- function(files,
 }
 #' Aggregate AGB mean and uncertainty from the GEDI level4A tiles.
 #'
-#' @title GEDI_L4A_2_mean_var
 #' @param site_info List: list of site info including site_id, site_name, lon, and lat.
 #' @param which.point.in.which.file List: lists containing physical paths of GEDI tiles that intercept the each site.
 #' @param buffer Numeric: buffer distance (in degree) that is used to create the bounding box (default is 0.005 [~ 500 m]).
@@ -437,8 +436,6 @@ GEDI_L4A_2_mean_var <- function(site_info,
   return(agb_mean_sd)
 }
 #' Submit jobs through `qsub` for the `GEDI_L4A_2_mean_var` function.
-#'
-#' @title GEDI_L4A_2_mean_var
 #' 
 #' @param site_info List: list of site info including site_id, site_name, lon, and lat.
 #' @param outdir Character: the physical path within which the batch job folders will be created.
