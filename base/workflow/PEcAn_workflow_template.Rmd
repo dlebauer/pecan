@@ -1,0 +1,17 @@
+---
+title: "PEcAn Workflow Example"
+author: "Your Nameiklnk"
+date: today
+format: html
+---
+
+# **🌿 PEcAn Workflow for Ecosystem Modeling**
+
+This Quarto document runs a simple PEcAn model simulation using the SIPNET model.
+
+## **1️⃣ Load Required Libraries**
+```{r}
+# Load the PEcAn framework
+library(PEcAn.all)
+library(PEcAn.settings)
+library(PEcAn.visualization)
