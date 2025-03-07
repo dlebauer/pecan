@@ -159,7 +159,6 @@ GEDI_AGB_prep <- function(site_info,
 }
 #' Detect which GEDI level 4A tiles intercept which site.
 #'
-#' @title GEDI_L4A_Finder
 #' @param files Character: full paths of GEDI level 4A tiles.
 #' @param site_info List: list of site info including site_id, site_name, lon, and lat.
 #' @param buffer Numeric: buffer distance (in degree) that is used to create the bounding box (default is 0.005 [~ 500 m]).
@@ -229,8 +228,6 @@ GEDI_L4A_Finder <- function(files,
   return(which.point.in.which.file)
 }
 #' Submit jobs through `qsub` for the `GEDI_L4A_Finder` function.
-#'
-#' @title GEDI_L4A_Finder_batch
 #' 
 #' @param files Character: full paths of GEDI level 4A tiles.
 #' @param outdir Character: the physical path within which the batch job folders will be created.
@@ -333,7 +330,7 @@ GEDI_L4A_Finder_batch <- function(files,
   }
   return(res)
 }
-#' Aggregate AGB mean and uncertianty from the GEDI level4A tiles.
+#' Aggregate AGB mean and uncertainty from the GEDI level4A tiles.
 #'
 #' @title GEDI_L4A_2_mean_var
 #' @param site_info List: list of site info including site_id, site_name, lon, and lat.
@@ -341,7 +338,7 @@ GEDI_L4A_Finder_batch <- function(files,
 #' @param buffer Numeric: buffer distance (in degree) that is used to create the bounding box (default is 0.005 [~ 500 m]).
 #' @param cores Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.
 #' 
-#' @return A list containing AGB mean and standard devieation for each site.
+#' @return A list containing AGB mean and standard deviation for each site.
 #' @export
 GEDI_L4A_2_mean_var <- function(site_info, 
                                 which.point.in.which.file, 
@@ -352,7 +349,7 @@ GEDI_L4A_2_mean_var <- function(site_info,
   # initialize agb mean and sd lists for each site.
   agb_mean <- agb_sd <- rep(NA, length(which.point.in.which.file))
   # initialize parallel.
-  cl <- parallel::makeCluster(as.numeric(parallel::detectCores()))
+  cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
   # setup progress bar.
   pb <- utils::txtProgressBar(min=1, max=length(which.point.in.which.file), style=3)

@@ -21,8 +21,8 @@ GEDI_L4A_2_mean_var(
 \item{cores}{Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.}
 }
 \value{
-A list containing AGB mean and standard devieation for each site.
+A list containing AGB mean and standard deviation for each site.
 }
 \description{
-Aggregate AGB mean and uncertianty from the GEDI level4A tiles.
+Aggregate AGB mean and uncertainty from the GEDI level4A tiles.
 }

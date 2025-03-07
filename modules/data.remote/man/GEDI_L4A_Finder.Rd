@@ -2,7 +2,7 @@
 % Please edit documentation in R/GEDI_AGB_prep.R
 \name{GEDI_L4A_Finder}
 \alias{GEDI_L4A_Finder}
-\title{GEDI_L4A_Finder}
+\title{Detect which GEDI level 4A tiles intercept which site.}
 \usage{
 GEDI_L4A_Finder(
   files,

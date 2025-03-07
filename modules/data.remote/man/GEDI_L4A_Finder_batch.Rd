@@ -2,7 +2,7 @@
 % Please edit documentation in R/GEDI_AGB_prep.R
 \name{GEDI_L4A_Finder_batch}
 \alias{GEDI_L4A_Finder_batch}
-\title{GEDI_L4A_Finder_batch}
+\title{Submit jobs through `qsub` for the `GEDI_L4A_Finder` function.}
 \usage{
 GEDI_L4A_Finder_batch(
   files,
