@@ -11,6 +11,7 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 
 - Documentation of `make` options including addition of `make help` 
 - Add make option to document a single package with `make documentation pathto/package` 
+- Removed reference to PEcAn VM from documentation #3478
 
 ### Fixed
 - updated github action to build docker images
