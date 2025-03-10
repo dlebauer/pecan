@@ -20,7 +20,7 @@ In the following demo, **URL** is the web address of a PEcAn server and will ref
 *	If you followed instructions found in [Install PEcAn by hand](#install-native), **URL is your server’s IP**
 
 
-#### Start PEcAn:
+#### Start PEcAn {#start-pecan-web}:
 
 1. **Enter [URL](#url-def) in your web browser**
 2. **Click the link for the PEcAn web interface**
