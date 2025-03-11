@@ -81,14 +81,15 @@ jobs:
             name=ghcr.io/${{ steps.name.outputs.repository }}/${{ steps.name.outputs.image_name }}
             name=pecan/${{ steps.name.outputs.image_name }},enable=${{ env.check_var != null }}
           # generate Docker tags based on the following events/attributes
+          # Repo admins set DEFAULT_R_VERSION at https://github.com/PecanProject/pecan/settings/variables/actions
           tags: |
             type=schedule
-            type=ref,event=branch,enable=${{ inputs.r-version == '4.1' }}
+            type=ref,event=branch,enable=${{ inputs.r-version == vars.DEFAULT_R_VERSION }}
             type=ref,event=branch,suffix=-R${{ inputs.r-version }}
             type=ref,event=pr
-            type=semver,pattern={{version}},enable=${{ inputs.r-version == '4.1' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.r-version == '4.1' }}
-            type=semver,pattern={{major}},enable=${{ inputs.r-version == '4.1' }}
+            type=semver,pattern={{version}},enable=${{ inputs.r-version == vars.DEFAULT_R_VERSION }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.r-version == vars.DEFAULT_R_VERSION }}
+            type=semver,pattern={{major}},enable=${{ inputs.r-version == vars.DEFAULT_R_VERSION }}
             type=semver,pattern={{version}},suffix=-R${{ inputs.r-version }}
 
       # setup docker build
