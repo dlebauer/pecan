@@ -55,8 +55,14 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
     compt_run <- 0
     compt_run_modellauncher <- 1
     job_modellauncher <- list()
+  } else {
+    Njobmax <- nruns
   }
-  
+
+  if (is_qsub) {
+    settings$host$qsub <- gsub("@NJOBS@", Njobmax, settings$host$qsub)
+  }
+
   # loop through runs and either call start run, or launch job on remote machine
   jobids <- list()
   
