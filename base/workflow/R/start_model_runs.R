@@ -74,7 +74,6 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
   
   # launcher folder
   jobfile <- NULL
-  firstrun <- NULL
   
   #Copy all run directories over if not local
   if (!is_local) {
@@ -121,9 +120,8 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
       jobids[run] <- folder
       
     } else if (is_modellauncher) {
-      # set up launcher script if we use modellauncher
-      if (is.null(firstrun)) {
-        firstrun <- run
+      # set up one launcher script for each chunk of up to Njobmax jobs
+      if (is.null(jobfile)) {
         jobfile <- PEcAn.remote::setup_modellauncher(
           run = run,
           rundir = settings$rundir,
@@ -137,6 +135,13 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
         c(file.path(settings$host$rundir, run_id_string)),
         con = jobfile)
       pbi <- pbi + 1
+      compt_run <- compt_run + 1
+      # Check if compt_run has reached Njobmax
+      if (compt_run == Njobmax) {
+        close(jobfile)
+        compt_run <- 0
+        jobfile <- NULL
+      }
       
     } else if (is_qsub) {
       out <- PEcAn.remote::start_qsub(
@@ -185,18 +190,6 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
       pbi <- pbi + 1
       utils::setTxtProgressBar(pb, pbi)
     }
-    
-    # Check if compt_run has reached Njobmax
-    if (is_modellauncher){
-      compt_run <- compt_run + 1
-      if (compt_run == Njobmax){
-        close(jobfile)
-        firstrun <- NULL
-        compt_run <- 0
-        jobfile <- NULL
-      }      
-    }
-    
   } # end loop over runs
   close(pb)
   
