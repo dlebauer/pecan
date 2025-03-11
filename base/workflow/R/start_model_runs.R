@@ -230,7 +230,7 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
             stdout_log = "launcher.out.log",
             stderr_log = "launcher.err.log",
             job_script = "launcher.sh",
-            qsub_extra = settings$host$modellauncher$qsub)
+            qsub_extra = settings$host$modellauncher$qsub.extra)
         }
         # HACK: Code below gets 'run' from names(jobids) so need an entry for
         # each run. But when using modellauncher all runs have the same jobid
