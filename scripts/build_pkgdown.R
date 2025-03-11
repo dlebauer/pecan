@@ -35,8 +35,8 @@ for (pkg in packages) {
       warning(paste("No docs folder created for:", pkg))
       next 
     }
-    dest <- file.path("book_source/pkgdocs", pkg)
-    if (!dir.exists(dest)) {
+    dest <- file.path("package_documentation/pkgdocs", pkg)
+    if (!dir.exists(dest)) {  
       dir.create(dest, recursive = TRUE, showWarnings = FALSE)
     }
     if (getRversion() >= "4.2.0") {
@@ -50,6 +50,8 @@ for (pkg in packages) {
     message(paste("✅ Successfully copied docs from", pkg, "to", dest))
   }, error = function(e) {
     warning(paste("❌ Error building pkgdown site for", pkg, ":", e$message))
+  },warning = function(w) {
+    warning(paste("⚠️ Warning building pkgdown site for", pkg, ":", w$message))
   }, finally = {
     setwd(current_wd) 
   })
