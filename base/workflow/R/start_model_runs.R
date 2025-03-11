@@ -39,13 +39,19 @@ start_model_runs <- function(settings, write = TRUE, stop.on.error = TRUE) {
   is_rabbitmq <- !is.null(settings$host$rabbitmq)
   is_modellauncher <- !is.null(settings$host$modellauncher)
   
-  # Check if Njobmax tag exists in seetings
+  # Check if Njobmax tag exists in settings
   if (is_modellauncher){
     if (!is.null(settings$host$modellauncher$Njobmax)){
       Njobmax <- settings$host$modellauncher$Njobmax
     } else {
       Njobmax <- nruns
     }
+    settings$host$modellauncher$qsub.extra <- gsub(
+      "@NJOBS@",
+      Njobmax,
+      settings$host$modellauncher$qsub.extra
+    )
+
     compt_run <- 0
     compt_run_modellauncher <- 1
     job_modellauncher <- list()
