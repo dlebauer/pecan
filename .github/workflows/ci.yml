@@ -28,8 +28,9 @@ jobs:
       fail-fast: false
       matrix:
         R:
+          - "4.4"
           - "4.2"
-          - ${{ vars.DEFAULT_R_VERSION }} # set by repo admins at https://github.com/PecanProject/pecan/settings/variables/action
+          - "4.1"
     uses: ./.github/workflows/test.yml
     with:
       R-version: ${{ matrix.R }}
@@ -42,8 +43,9 @@ jobs:
       matrix:
         package: [check_base, check_modules, check_models]
         R:
+          - "4.4"
           - "4.2"
-          - ${{ vars.DEFAULT_R_VERSION }}
+          - "4.1"
     uses: ./.github/workflows/check.yml
     with:
       R-version: ${{ matrix.R }}
@@ -56,8 +58,9 @@ jobs:
       fail-fast: false
       matrix:
         R:
+          - "4.4"
           - "4.2"
-          - ${{ vars.DEFAULT_R_VERSION }}
+          - "4.1"
     uses: ./.github/workflows/sipnet.yml
     with:
       R-version: ${{ matrix.R }}
