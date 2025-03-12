@@ -20,7 +20,7 @@ start_qsub <- function(run, qsub_string, rundir,
   run_id_string <- format(run, scientific = FALSE)
   
   if (!is.null(qsub_extra)) {
-    qsub <- paste(qsub, qsub_extra)
+    qsub_string <- paste(qsub_string, qsub_extra)
   }
   qsub <- gsub("@NAME@", paste0("PEcAn-", run_id_string), qsub_string)
   qsub <- gsub("@STDOUT@", file.path(host_outdir, run_id_string, stdout_log), qsub)
