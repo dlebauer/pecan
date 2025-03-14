@@ -12,6 +12,7 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 - Documentation of `make` options including addition of `make help` 
 - Add make option to document a single package with `make documentation pathto/package` 
 - Add caladapt_download_loca functions #3445
+- `settings$host$qsub` and `settings$host$modellauncher$qsub.extra` will now expand `@NJOBS@` to the number of models in the run, allowing e.g. `--array=1-@NJOBS@`. Note that qsub still by default submits every model as a separate job, so for now this is mostly useful for custom modellauncher scripts
 
 ### Fixed
 - updated github action to build docker images
@@ -33,6 +34,8 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 ### Removed
 
 - Remove Browndog support for conversions (#3348, @Sweetdevil144).
+- Packages PEcAn.PRELES is no longer built or tested by default, because of ongoing build failures in the `RPreles` package it depends on.
+  Install it manually as needed, and be aware it is not being routinely checked by CI (so if you're checking it, please file bugs and submit fixes!).
 
 ## [1.8.0] - 2024-07-12
 
