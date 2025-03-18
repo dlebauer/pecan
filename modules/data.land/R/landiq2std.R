@@ -43,6 +43,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     tempfile <- tempfile(fileext = ".gpkg")
     shp2gpkg(input_file, tempfile, overwrite = TRUE)
     input_file <- tempfile # now gpkg is input file
+    on.exit(unlink(input_file), add = TRUE)
   }
 
   # Read the Shapefile
@@ -63,10 +64,14 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     sf::st_transform(4326) |>
     dplyr::mutate(
       year = year,
-      lon = sf::st_coordinates(sf::st_centroid(geom))[, "X"],
-      lat = sf::st_coordinates(sf::st_centroid(geom))[, "Y"],
+      coords = sf::st_coordinates(sf::st_centroid(geom))
+    ) |>
+    dplyr::mutate(
+      lon = coords[, "X"],
+      lat = coords[, "Y"],
       area_ha = PEcAn.utils::ud_convert(Acres, "acre", "ha")
     ) |>
+    dplyr::select(-coords) |>
     dplyr::rowwise() |>
     dplyr::mutate( # generate ids rowwise separately because
       # rowwise geospatial operations are very slow
