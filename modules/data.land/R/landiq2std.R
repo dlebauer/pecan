@@ -34,19 +34,15 @@
 #' # Run the conversion function
 #' landiq2std(input_file, output_gpkg, output_csv)
 #'
-#' @importFrom sf st_read st_transform st_centroid st_coordinates st_write
-#' @importFrom dplyr mutate select rename filter case_when distinct
 #' @export
 landiq2std <- function(input_file, output_gpkg, output_csv) {
   # Check input file format
+  # If shapefile, convert to GeoPackage
   if (grepl(pattern = "\\.shp$", input_file)) {
-    PEcAn.logger::logger.info(
-      "Converting Shapefile:", basename(input_file),
-      "to GeoPackage:", basename(output_gpkg)
-    )
     # read in, repair geometries, write out repaired geopackage
-    shp2gpkg(input_file, output_gpkg, overwrite = TRUE)
-    input_file <- output_gpkg # now gpkg is input file
+    tempfile <- tempfile(fileext = ".gpkg")
+    shp2gpkg(input_file, tempfile, overwrite = TRUE)
+    input_file <- tempfile # now gpkg is input file
   }
 
   # Read the Shapefile
