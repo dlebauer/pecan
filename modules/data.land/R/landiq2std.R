@@ -74,13 +74,13 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     dplyr::rowwise() |>
     dplyr::mutate( # generate ids rowwise separately because
       # rowwise geospatial operations are very slow
-      id = digest::digest(geom, algo = "xxhash64")
+      site_id = digest::digest(geom, algo = "xxhash64")
     ) |>
     dplyr::rename(county = County)
 
   # Process data for GeoPackage
   gpkg_data <- landiq_polygons_updated |>
-    dplyr::select(id, geom, lat, lon, area_ha, county)
+    dplyr::select(site_id, geom, lat, lon, area_ha, county)
 
   # Process data for CSV
   csv_data <- landiq_polygons_updated |>
@@ -101,7 +101,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
       source = Source,
       notes = Comments
     ) |>
-    dplyr::select(id, lat, lon, year, crop, pft, source, notes)
+    dplyr::select(site_id, lat, lon, year, crop, pft, source, notes)
 
   # Warn about crops without a PFT
   unassigned_pft <- csv_data |>
