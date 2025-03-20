@@ -38,7 +38,7 @@
 #' GEDI_AGB <- GEDI_AGB_prep(site_info, time_points, outdir, buffer)
 #' }
 #' @author Dongchen Zhang
-#' @importFrom magrittr %>%
+#' @importFrom purrr %>%
 GEDI_AGB_prep <- function(site_info, 
                           time_points, 
                           outdir = file.path(getwd(), "GEDI_AGB"), 
