@@ -108,7 +108,7 @@ depends = .doc/$(1) .install/$(1) .check/$(1) .test/$(1)
 .PHONY: all install check test document clean shiny pkgdocs \
             check_base check_models check_modules help
 
-all: install document
+all: install document  
 
 # Note: Installs base first as Modules has a circular dependency on base
 check_base: $(BASE_C)
