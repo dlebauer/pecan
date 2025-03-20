@@ -343,6 +343,19 @@ GEDI_L4A_2_mean_var <- function(site_info,
                                 which.point.in.which.file, 
                                 buffer = 0.005, 
                                 cores = parallel::detectCores()) {
+  # checking packages.
+  if ("try-error" %in% class(try(find.package("hdf5r")))) {
+    PEcAn.logger::logger.info("The hdf5r is not installed.")
+    return(NA)
+  }
+  if ("try-error" %in% class(try(find.package("doSNOW")))) {
+    PEcAn.logger::logger.info("The doSNOW is not installed.")
+    return(NA)
+  }
+  if ("try-error" %in% class(try(find.package("rhdf5")))) {
+    PEcAn.logger::logger.info("The rhdf5 is not installed.")
+    return(NA)
+  }
   # report current workflow.
   PEcAn.logger::logger.info("Estimating AGB mean and uncertainty.")
   # initialize agb mean and sd lists for each site.
