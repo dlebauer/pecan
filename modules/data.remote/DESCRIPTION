@@ -44,6 +44,7 @@ Suggests:
     lubridate,
     raster,
     reshape,
+    rhdf5,
     sf,
     testthat (>= 1.0.2),
     tibble,
