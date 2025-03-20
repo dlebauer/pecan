@@ -105,12 +105,11 @@ depends = .doc/$(1) .install/$(1) .check/$(1) .test/$(1)
 ### Rules
 
 .PHONY: all install check test shiny pkgdocs \
-
             check_base check_models check_modules document help
 
 all: install document
 
-#    Note: Installs base first as Modules has a circular dependency on base
+# Note: Installs base first as Modules has a circular dependency on base
 check_base: $(BASE_C)
 check_models: $(MODELS_C)
 check_modules: $(BASE_I) $(MODULES_C)
@@ -164,6 +163,7 @@ help:
 	@echo "  test           Run unit tests on all packages"
 	@echo "  shiny          Install dependencies for Shiny apps"
 	@echo "  book           Render the PEcAn bookdown documentation"
+	@echo "  pkgdocs        Build package documentation websites using pkgdown"
 	@echo "  clean          Remove build artifacts"
 	@echo "  help           Show this help message"
 
