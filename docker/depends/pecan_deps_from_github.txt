@@ -9,4 +9,4 @@ ropensci/traits
 SticsRPacks/SticsOnR
 SticsRPacks/SticsRFiles
 VangiElia/GEDI4R
-grimbough/rhdf5
+    github::grimbough/rhdf5
