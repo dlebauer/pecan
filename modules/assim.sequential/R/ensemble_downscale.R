@@ -234,13 +234,15 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
 ##' It provides a way to evaluate the accuracy of the downscaling results without modifying the main downscaling function.
 ##'
 ##' @return A list of metrics for each ensemble, where each element contains MAE , MSE ,R_squared ,actual values from testing data and predicted values for the testing data
-
+##'
+##' @export
 downscale_metrics <- function(downscale_output) {
   
   test_data_list <- lapply(downscale_output$test_data, function(x) dplyr::pull(x, prediction))
   predicted_list <- downscale_output$test_prediction
 
   metric_fn <- function(actual, predicted){ # Could use PEcAn.benchmark pkg?    
+    mean <- mean(actual, na.rm = TRUE)
     mse <- mean((actual - predicted)^2, na.rm = TRUE)
     mae <- mean(abs(actual - predicted), na.rm = TRUE)
     r_squared <- 1 - sum((actual - predicted)^2, na.rm = TRUE) /
@@ -249,6 +251,7 @@ downscale_metrics <- function(downscale_output) {
     cv <- 100 * sqrt(mse) / mean(actual, na.rm = TRUE)
 
     data.frame(
+      mean = mean,
       MSE = mse,
       MAE = mae,
       R_squared = r_squared,
