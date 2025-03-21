@@ -12,6 +12,8 @@
 ##'
 ##' @return A list containing the cleaned site coordinates and the ensemble carbon output for the 
 ##' specified date and carbon pool.
+##'
+##' @export
 
 subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
 
@@ -133,6 +135,8 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
 ##'
 ##' @return A list containing the model, predictions for all values of covariates as well as test data and test predictions for downstream 
 ##' statistics.
+##' 
+##' @export
 
 ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NULL) {
   
