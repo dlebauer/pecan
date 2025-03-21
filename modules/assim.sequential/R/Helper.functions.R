@@ -6,10 +6,10 @@
 #' @description This function performs a simple outlier replacement on all the columns of dataframes inside a list
 #' @return A list the same dimension as X, with each column of each dataframe
 #'   modified by replacing outlier points with the column median
-#' @export
+#' @export outlier.detector.boxplot
 #' @importFrom magrittr %>%
 #'
-outlier.detector.boxplot<-function(X) {
+outlier.detector.boxplot <- function(X) {
   X <- X  %>% 
     purrr::map(function(X.tmp){
       #X.tmp is all the state variables for each element of the list (site)

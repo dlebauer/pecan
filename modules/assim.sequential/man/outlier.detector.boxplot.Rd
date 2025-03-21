@@ -4,7 +4,7 @@
 \alias{outlier.detector.boxplot}
 \title{outlier.detector.boxplot}
 \usage{
-outlier.detector.boxplot(X)
+\method{outlier}{detector.boxplot}(X)
 }
 \arguments{
 \item{X}{A list of dataframes}
