@@ -59,22 +59,21 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     PEcAn.logger::logger.error("Input file is missing the following columns: ", paste(missing_cols, collapse = ", "))
   }
 
-  # possible spedup by pre-computing lat and lon
   landiq_polygons_updated <- landiq_polygons |>
     sf::st_transform(4326) |>
     dplyr::mutate(
-      year = year,
       coords = sf::st_coordinates(sf::st_centroid(geom))
     ) |>
     dplyr::mutate(
+      year = year,
       lon = coords[, "X"],
       lat = coords[, "Y"],
       area_ha = PEcAn.utils::ud_convert(Acres, "acre", "ha")
     ) |>
     dplyr::select(-coords) |>
+    # digest step used to create unique site_ids requires rowwise
     dplyr::rowwise() |>
-    dplyr::mutate( # generate ids rowwise separately because
-      # rowwise geospatial operations are very slow
+    mutate(
       site_id = digest::digest(geom, algo = "xxhash64")
     ) |>
     dplyr::rename(county = County)
@@ -88,7 +87,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     tidyr::as_tibble() |>
     dplyr::mutate(
       crop = .data[[crop_col]],
-      pft = case_when(
+      pft = dplyr::case_when(
         crop %in% c(
           "Cherries", "Almonds", "Plums, Prunes and Apricots",
           "Walnuts", "Citrus", "Miscellaneous Deciduous", "Pears", "Olives",
@@ -106,8 +105,8 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
 
   # Warn about crops without a PFT
   unassigned_pft <- csv_data |>
-    filter(grepl("no PFT for", pft)) |>
-    distinct(crop, pft)
+    dplyr::filter(grepl("no PFT for", pft)) |>
+    dplyr::distinct(crop, pft)
   if (nrow(unassigned_pft) > 0) {
     PEcAn.logger::logger.warn( 
       "The following crops do not have a PFT assigned:",
@@ -116,7 +115,7 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   }
 
   # Write outputs
-  file.remove(output_gpkg, output_csv)
+  file.remove(output_gpkg, output_csv, showWarnings = FALSE)
   sf::st_write(gpkg_data,
     output_gpkg,
     layer = "sites", # analogous to BETYdb table name
@@ -124,6 +123,6 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   )
   readr::write_csv(csv_data, output_csv)
 
-  # Return paths to output files
-  invisible(list(GeoPackage = output_gpkg, CSV = output_csv))
+  # Return success status
+  invisible(TRUE)
 }
