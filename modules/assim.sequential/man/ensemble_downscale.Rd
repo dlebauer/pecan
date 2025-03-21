@@ -13,7 +13,7 @@ ensemble_downscale(ensemble_data, site_coords, covariates, seed = NULL)
 'lon' and 'lat' columns. Must have unique identifier 'site' field.}
 
 \item{covariates}{table containing numeric predictors to be used in downscaling. 
-Must have unique identifier 'site' field and predictor attributes}
+Must have unique identifier 'site_id' field and predictor attributes}
 
 \item{seed}{Numeric or NULL. Optional seed for random number generation. Default is NULL.}
 }

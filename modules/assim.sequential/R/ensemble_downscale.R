@@ -29,7 +29,7 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
   }
 
   # Ensure the sites are in the ensemble data
-  if (!all(unique(site_coords$id) %in% unique(ensemble_data$site))) {
+  if (!all(unique(site_coords$id) %in% unique(ensemble_data$site_id))) {
     PEcAn.logger::logger.error("Some sites in site_coords are not present in the ensemble_data.")
   }
 
@@ -37,10 +37,10 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
   ensemble_data <- ensemble_data |>
     filter(
       lubridate::date(datetime) == lubridate::date(date),
-      site %in% unique(site_coords$id),
+      site_id %in% unique(site_coords$id),
       variable == carbon_pool
     ) |>
-    select(site, ensemble, prediction)
+    select(site_id, ensemble, prediction)  # use site_id instead of site
 
   if (nrow(ensemble_data) == 0) {
     PEcAn.logger::logger.error("No carbon data found for the specified carbon pool.")
@@ -127,7 +127,7 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
 ##' @param site_coords data.frame, tibble, or sf object. Design points. If not sf object, must have
 ##' 'lon' and 'lat' columns. Must have unique identifier 'site' field. 
 ##' @param covariates table containing numeric predictors to be used in downscaling. 
-##' Must have unique identifier 'site' field and predictor attributes
+##' Must have unique identifier 'site_id' field and predictor attributes
 ##' @param seed Numeric or NULL. Optional seed for random number generation. Default is NULL.
 ##' @details This function will downscale forecast data to unmodeled locations using covariates and site locations
 ##'
@@ -142,7 +142,7 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
   ## - Add CNN functionality, use tidymodels?
 
   # Dynamically get covariate names
-  covariate_names <- colnames(covariates |> select(-site))
+  covariate_names <- colnames(covariates |> select(-site_id))
 
   # scale to N(0,1) (defaults of scale function)
   scaled_covariates <- covariates |>
@@ -150,7 +150,7 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
 
   # Create a single data frame with all predictors and ensemble data
   design_pt_data <- ensemble_data |>                 # from SIPNET ensemble runs
-    dplyr::left_join(scaled_covariates, by = "site") # n = nrow(site_coords) * ensemble_size
+    dplyr::left_join(scaled_covariates, by = "site_id") # n = nrow(site_coords) * ensemble_size
 
   # Split the observations into training and testing sets
   if (!is.null(seed)) {
@@ -237,12 +237,12 @@ downscale_metrics <- function(downscale_output) {
   predicted_list <- downscale_output$test_prediction
 
   metric_fn <- function(actual, predicted){ # Could use PEcAn.benchmark pkg?    
-    mse <- mean((actual - predicted)^2)
-    mae <- mean(abs(actual - predicted))
-    r_squared <- 1 - sum((actual - predicted)^2) /
-      sum((actual - mean(actual))^2)
+    mse <- mean((actual - predicted)^2, na.rm = TRUE)
+    mae <- mean(abs(actual - predicted), na.rm = TRUE)
+    r_squared <- 1 - sum((actual - predicted)^2, na.rm = TRUE) /
+      sum((actual - mean(actual, na.rm = TRUE))^2)
     # scaled mse
-    cv <- 100 * sqrt(mse) / mean(actual)
+    cv <- 100 * sqrt(mse) / mean(actual, na.rm = TRUE)
 
     data.frame(
       MSE = mse,
