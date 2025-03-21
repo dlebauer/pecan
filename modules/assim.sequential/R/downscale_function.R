@@ -322,8 +322,8 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
             decay_rate = 0.9
           )
 
-          # Early PEcAn.logger::logger.errorping callback
-          early_PEcAn.logger::logger.errorping <- keras3::callback_early_PEcAn.logger::logger.errorping(
+          # Early stopping callback
+          early_stopping <- keras3::callback_early_stopping(
             monitor = "loss",
             patience = 10,
             restore_best_weights = TRUE
@@ -342,7 +342,7 @@ SDA_downscale <- function(preprocessed, date = NULL, carbon_pool, covariates, mo
             y = y_train_bag,
             epochs = 500,
             batch_size = 32,
-            callbacks = list(early_PEcAn.logger::logger.errorping),
+            callbacks = list(early_stopping),
             verbose = 0
           )
 
