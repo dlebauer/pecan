@@ -37,7 +37,6 @@ Suggests:
     doSNOW,
     dplyr,
     getPass,
-    GEDI4R,
     ggplot2,
     grDevices,
     hdf5r,
@@ -52,7 +51,6 @@ Suggests:
     tibble,
     utils
 Remotes:
-    github::VangiElia/GEDI4R
     github::grimbough/rhdf5
 License: BSD_3_clause + file LICENSE
 Copyright: Authors

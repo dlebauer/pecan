@@ -2,11 +2,10 @@ adokter/suntools
 araiho/linkages_package
 chuhousen/amerifluxr
 ebimodeling/biocro@0.951
+grimbough/rhdf5
 RemkoDuursma/Maeswrap
 ropensci/geonames
 ropensci/nneo
 ropensci/traits
 SticsRPacks/SticsOnR
 SticsRPacks/SticsRFiles
-VangiElia/GEDI4R
-    github::grimbough/rhdf5
