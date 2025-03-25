@@ -374,14 +374,12 @@ GEDI_L4A_2_mean_var <- function(site_info,
       return(list(agb_mean = NA, agb_sd = NA))
     }
     file.keep.dat <- vector("list", length = length(temp.files))
+    # loop over files.
     for (j in seq_along(temp.files)) {
       # load file.
       level4a_h5 <- hdf5r::H5File$new(temp.files[j], mode = "r")
       # load beams id.
       groups_id <- grep("BEAM\\d{4}$", gsub("/", "", hdf5r::list.groups(level4a_h5,recursive = F)), value = T)
-      # load vcov.
-      ANCILLARY <- rhdf5::h5read(temp.files[j], "/ANCILLARY", compoundAsDataFrame=FALSE)
-      vcov <- ANCILLARY$model_data$vcov
       dat <- c()
       for (beam in groups_id) {
         level4a_i <- level4a_h5[[beam]]
@@ -404,10 +402,12 @@ GEDI_L4A_2_mean_var <- function(site_info,
       diff.lat <- abs(site_info$lat[i] - dat$lat_lowestmode)
       diff.lon <- abs(site_info$lon[i] - dat$lon_lowestmode)
       keep.inds <- which(diff.lat <= buffer & diff.lon <= buffer)
-      file.keep.dat[[j]] <- list(dat = dat[keep.inds, ],
-                                 vcov = ANCILLARY$model_data$vcov,
-                                 predict_stratum = ANCILLARY$model_data$predict_stratum)
+      file.keep.dat[[j]] <- list(dat = dat[keep.inds, ])
     }
+    # grab ancillary table.
+    ancillary <- level4a_h5[["ANCILLARY"]][["model_data"]]
+    vcov <- array(unlist(lapply(1:35,function(x)ancillary[x][["vcov"]])), dim = c(5, 5, 35))
+    predict_stratum <- do.call(rbind,lapply(1:35,function(x)ancillary[x][["predict_stratum"]]))
     # combining data and extract records that have the most abundant predict stratum.
     dat <- file.keep.dat %>% purrr::map(function(d){d$dat}) %>% dplyr::bind_rows()
     most_stratum <- names(sort(table(dat$predict_stratum), decreasing = TRUE))[1]
@@ -432,10 +432,10 @@ GEDI_L4A_2_mean_var <- function(site_info,
     }
     # calculate the agb mean and uncertainty based on equation 5 in:
     # https://iopscience.iop.org/article/10.1088/1748-9326/ab18df/pdf.
-    which.stratum <- which(file.keep.dat[[1]]$predict_stratum == most_stratum)
+    which.stratum <- which(predict_stratum == most_stratum)
     agb_est <- mean(agb.sum)/mean(num.footprints)
     sample.error <- sum((agb.sum - agb_est * num.footprints)^2)/(m*(m-1)*mean(num.footprints)^2)
-    vcov <- file.keep.dat[[1]]$vcov[,,which.stratum]
+    vcov <- vcov[,,which.stratum]
     mean.predictor <- c(mean(num.footprints), predictor/m)
     sd_est <- sqrt(t(mean.predictor) %*% vcov %*% mean.predictor + sample.error)
     return(list(agb_mean = agb_est, agb_sd = sd_est))
