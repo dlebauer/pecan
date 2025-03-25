@@ -27,7 +27,6 @@ Imports:
     PEcAn.logger,
     magrittr,
     PEcAn.remote,
-    rlang,
     terra,
     doParallel,
     parallel,
