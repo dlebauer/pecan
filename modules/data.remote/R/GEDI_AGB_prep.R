@@ -202,6 +202,8 @@ GEDI_L4A_Finder <- function(files,
     }
     if (nrow(dat) == 0) next
     # determine which sites are within the current GEDI tile.
+    # resolve GitHub namespace checking.
+    lat <- lon <- NULL
     res <- foreach::foreach(lat = lats, lon = lons) %dopar% {
       if (lat > 54 | lat < -54) {
         return(0)
@@ -367,6 +369,8 @@ GEDI_L4A_2_mean_var <- function(site_info,
   pb <- utils::txtProgressBar(min=1, max=length(which.point.in.which.file), style=3)
   progress <- function(n) utils::setTxtProgressBar(pb, n)
   opts <- list(progress=progress)
+  # resolve GitHub namespace checking.
+  i <- NULL
   agb_mean_sd <- foreach::foreach(i = seq_along(which.point.in.which.file), .packages = c("Kendall", "purrr"), .options.snow=opts) %dopar% {
     temp.files <- which.point.in.which.file[[i]]
     # if we only have 1 or 0 files that cover this pixel.
