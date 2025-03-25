@@ -468,7 +468,6 @@
 "reticulate","*","modules/data.atmosphere","Suggests",FALSE
 "reticulate","*","modules/data.land","Suggests",FALSE
 "reticulate","*","modules/data.remote","Imports",FALSE
-"rhdf5","*","modules/data.remote","Suggests",FALSE
 "rjags","*","base/utils","Suggests",FALSE
 "rjags","*","modules/assim.batch","Imports",FALSE
 "rjags","*","modules/data.land","Imports",FALSE
