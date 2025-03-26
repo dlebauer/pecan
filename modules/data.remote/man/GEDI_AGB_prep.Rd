@@ -14,7 +14,8 @@ GEDI_AGB_prep(
   batch = FALSE,
   prerun = NULL,
   num.folder = NULL,
-  cores = parallel::detectCores()
+  cores = parallel::detectCores(),
+  credential.folder = "~"
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ GEDI_AGB_prep(
 \item{num.folder}{Numeric: the number of batch folders to be created when submitting jobs to the queue.}
 
 \item{cores}{Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.}
+
+\item{credential.folder}{Character: the physical path to the folder that contains the credential file (.nasadaacapirc).}
 }
 \value{
 A data frame containing AGB and sd for each site and each time step.

@@ -14,6 +14,7 @@
 #' @param prerun Character: series of pre-launch shell command before running the shell job (default is NULL).
 #' @param num.folder Numeric: the number of batch folders to be created when submitting jobs to the queue.
 #' @param cores Numeric: numbers of core to be used for the parallel computation. The default is the maximum current CPU number.
+#' @param credential.folder Character: the physical path to the folder that contains the credential file (.nasadaacapirc).
 #'
 #' @return A data frame containing AGB and sd for each site and each time step.
 #' @export
@@ -48,7 +49,8 @@ GEDI_AGB_prep <- function(site_info,
                           batch = FALSE, 
                           prerun = NULL,
                           num.folder = NULL,
-                          cores = parallel::detectCores()) {
+                          cores = parallel::detectCores(),
+                          credential.folder = "~") {
   # convert list to vector.
   if (is.list(bbox)) {
     bbox <- as.numeric(unlist(bbox))
@@ -68,9 +70,9 @@ GEDI_AGB_prep <- function(site_info,
     dir.create(outdir)
   }
   # detect if we generate the NASA DAAC credential file.
-  if (!file.exists(file.path(outdir, ".nasadaacapirc"))) {
+  if (!file.exists(file.path(credential.folder, ".nasadaacapirc"))) {
     PEcAn.logger::logger.info("There is no credential file for NASA DAAC server.")
-    PEcAn.logger::logger.info("Please create the .nasadaacapirc file within the out folder.")
+    PEcAn.logger::logger.info("Please create the .nasadaacapirc file within the credential folder.")
     PEcAn.logger::logger.info("The first and second lines of the file are the username and password.")
     return(NULL)
   }
@@ -110,7 +112,7 @@ GEDI_AGB_prep <- function(site_info,
                                 outdir = download.path, 
                                 doi = "10.3334/ORNLDAAC/2056", 
                                 just_path = F, 
-                                credential.folder = outdir)
+                                credential.folder = credential.folder)
     # if we want to submit jobs to the queue.
     if (batch) {
       if (is.null(num.folder)) {
