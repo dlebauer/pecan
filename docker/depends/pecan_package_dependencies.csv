@@ -165,7 +165,7 @@
 "lubridate",">= 1.6.0","modules/assim.sequential","Imports",FALSE
 "lubridate",">= 1.6.0","modules/benchmark","Imports",FALSE
 "lubridate",">= 1.6.0","modules/data.atmosphere","Imports",FALSE
-"lubridate",">= 1.6.0","modules/rtm","Imports",FALSE
+"lubridate",">= 1.6.0","modules/rtm","Suggests",FALSE
 "lubridate",">= 1.7.0","models/biocro","Imports",FALSE
 "Maeswrap","*","models/maespa","Suggests",FALSE
 "magic",">= 1.5.0","modules/assim.sequential","Suggests",FALSE
@@ -565,6 +565,7 @@
 "stats","*","modules/assim.batch","Imports",FALSE
 "stats","*","modules/assim.sequential","Suggests",FALSE
 "stats","*","modules/photosynthesis","Imports",FALSE
+"stats","*","modules/rtm","Imports",FALSE
 "SticsRFiles","*","models/stics","Suggests",FALSE
 "stringi","*","base/logger","Imports",FALSE
 "stringi","*","base/utils","Imports",FALSE
