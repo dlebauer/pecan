@@ -214,6 +214,28 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, 
                                    clean = FALSE, write.to.db = TRUE, restart = NULL, samples = NULL, rename = FALSE) {
   
+  
+  # --- START OF YOUR NEW CODE ---
+  # Check if there are NO inputs
+  if (is.null(defaults$inputs)) {
+    stop(PEcAn.logger::logger.severe("No inputs provided - cannot configure ensemble"))
+  }
+  
+  # Check each input type (e.g., soil, veg)
+  for (input_type in names(defaults$inputs)) {
+    input_paths <- defaults$inputs[[input_type]]$path
+    
+    # Case: Multiple inputs + no samples → Error
+    if (length(input_paths) > 1 && is.null(ensemble.samples)) {
+      stop(PEcAn.logger::logger.severe(paste(
+        "Multiple", input_type, "inputs found but no sampling method specified.",
+        "Add a sampling method to pecan.xml (e.g., <method>uniform</method>)"
+      )))
+    }
+  }
+  # --- END OF YOUR NEW CODE ---
+  
+  
   con <- NULL
   my.write.config <- paste("write.config.", model, sep = "")
   my.write_restart <- paste0("write_restart.", model)
@@ -415,6 +437,41 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "outdir      : ", file.path(settings$host$outdir, run.id), "\n",
           file = file.path(settings$rundir, run.id, "README.txt"))
       
+      
+      #changing the structure of input tag to what the models are expecting
+      for (input_i in seq_along(settings$run$inputs)) {
+        input_tag <- names(settings$run$inputs)[[input_i]]
+        input <- settings$run$inputs[[input_tag]]
+        
+        # --- Start of changes ---
+        # Validate BEFORE handling samples
+        if (is.null(input$path) || length(input$path) == 0) {
+          PEcAn.logger::logger.severe("Input '%s' has no paths specified", input_tag)
+        }
+        
+        # Check unsampled inputs first
+        if (!input_tag %in% names(samples)) {
+          if (length(input$path) > 1) {
+            PEcAn.logger::logger.severe(
+              paste("Input '%s' has %d paths but no sampling method.",
+                    "Add <samplingspace> for this input in pecan.xml"),
+              input_tag, length(input$path)
+            )
+          }
+          if (!file.exists(input$path[[1]])) {  # New: Verify file exists
+            PEcAn.logger::logger.severe(
+              "Input '%s' path '%s' not found", 
+              input_tag, input$path[[1]]
+            )
+          }
+          next  # Valid single path, no sampling needed
+        }
+        # --- End of changes ---
+        
+        # Remaining original code for sampled inputs
+        input_paths <- samples[[input_tag]][["samples"]][[i]]
+        # ... (keep existing validation for sampled inputs) ...
+      }
       
       do.call(my.write.config, args = list( defaults = defaults, 
                                             trait.values = lapply(samples$parameters$samples, function(x, n) { x[n, , drop=FALSE] }, n=i), # this is the params
