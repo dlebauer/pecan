@@ -9,11 +9,14 @@ FROM ${PARENT_IMAGE}:${IMAGE_VERSION} AS pecandocs
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends pandoc \
-    && Rscript -e 'repos <- c(getOption("repos"), sub(r"(\d{4}-\d{2}-\d{2})", "latest", getOption("repos"))); \
-                   remotes::install_version("rmarkdown", ">= 2.19", dependencies = TRUE, upgrade = FALSE, repos = repos); \
-                   remotes::install_version("knitr", ">= 1.42", dependencies = TRUE, upgrade = FALSE, repos = repos); \
-                   remotes::install_version("bookdown", ">= 0.31", dependencies = TRUE, upgrade = FALSE, repos = repos); \
-                   install.packages("pkgdown")' \
+    && Rscript \
+        -e 'repos <- c(getOption("repos"),' \
+        -e '           sub(r"(\d{4}-\d{2}-\d{2})", "latest", getOption("repos")))' \
+        -e 'repos <- c(getOption("repos"), sub(r"(\d{4}-\d{2}-\d{2})", "latest", getOption("repos")))' \
+        -e 'remotes::install_version("rmarkdown", ">= 2.19", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
+        -e 'remotes::install_version("knitr", ">= 1.42", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
+        -e 'remotes::install_version("bookdown", ">= 0.31", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
+        -e 'install.packages("pkgdown")' \
     && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------------------------------------
@@ -29,10 +32,13 @@ RUN make build
 # ----------------------------------------------------------------------
 # Build pkgdown documentation
 # ----------------------------------------------------------------------
-WORKDIR /src/
-COPY package_documentation /src/package_documentation
-COPY Makefile /src/
-RUN make pkgdocs
+WORKDIR /pkgdoc/
+COPY Makefile Makefile.depends /pkgdoc/
+COPY scripts/build_pkgdown.R /pkgdoc/scripts/build_pkgdown.R
+COPY base /pkgdoc/base/
+COPY modules /pkgdoc/modules/
+COPY models /pkgdoc/models/
+RUN make clean && make pkgdocs
 
 # ----------------------------------------------------------------------
 # copy html pages to container
@@ -46,7 +52,7 @@ RUN apt-get update \
 
 COPY docker/docs/index.html /usr/local/apache2/htdocs/
 COPY --from=pecandocs /src/book_source/_book/ /usr/local/apache2/htdocs/docs/pecan/
-COPY --from=pecandocs /src/package_documentation/pkgdocs/ /usr/local/apache2/htdocs/pkgdocs/
+COPY --from=pecandocs /pkgdoc/package_documentation/pkgdocs/ /usr/local/apache2/htdocs/pkgdocs/
 
 # ----------------------------------------------------------------------
 # PEcAn version information

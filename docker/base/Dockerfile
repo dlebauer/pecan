@@ -3,7 +3,6 @@ ARG IMAGE_VERSION="latest"
 ARG PARENT_IMAGE="pecan/depends"
 FROM ${PARENT_IMAGE}:${IMAGE_VERSION}
 
-
 # ----------------------------------------------------------------------
 # PEcAn version information
 # ----------------------------------------------------------------------
