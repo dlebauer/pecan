@@ -12,11 +12,10 @@ RUN apt-get update \
     && Rscript \
         -e 'repos <- c(getOption("repos"),' \
         -e '           sub(r"(\d{4}-\d{2}-\d{2})", "latest", getOption("repos")))' \
-        -e 'repos <- c(getOption("repos"), sub(r"(\d{4}-\d{2}-\d{2})", "latest", getOption("repos")))' \
         -e 'remotes::install_version("rmarkdown", ">= 2.19", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
         -e 'remotes::install_version("knitr", ">= 1.42", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
         -e 'remotes::install_version("bookdown", ">= 0.31", dependencies = TRUE, upgrade = FALSE, repos = repos)' \
-        -e 'install.packages("pkgdown")' \
+        -e 'install.packages("pkgdown", repos = repos)' \
     && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------------------------------------

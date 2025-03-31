@@ -32,12 +32,6 @@ jobs:
     - name: Generate Package Documentation
       run: make pkgdocs
 
-    # Save artifact
-    - uses: actions/upload-artifact@v4
-      with:
-        name: pecan-pkgdown-docs
-        path: package_documentation/pkgdocs
-
     # Check if package documentation repo exists
     - name: Check if package documentation repo exists
       id: pkgdoc_exists
