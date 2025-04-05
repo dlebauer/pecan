@@ -215,10 +215,9 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
                                    clean = FALSE, write.to.db = TRUE, restart = NULL, samples = NULL, rename = FALSE) {
   
   
-  # --- START OF YOUR NEW CODE ---
   # Check if there are NO inputs
   if (is.null(defaults$inputs)) {
-    stop(PEcAn.logger::logger.severe("No inputs provided - cannot configure ensemble"))
+    PEcAn.logger::logger.severe("No inputs provided - cannot configure ensemble")
   }
   
   # Check each input type (e.g., soil, veg)
@@ -227,13 +226,13 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
     
     # Case: Multiple inputs + no samples → Error
     if (length(input_paths) > 1 && is.null(ensemble.samples)) {
-      stop(PEcAn.logger::logger.severe(paste(
+      PEcAn.logger::logger.error(paste(
         "Multiple", input_type, "inputs found but no sampling method specified.",
         "Add a sampling method to pecan.xml (e.g., <method>uniform</method>)"
-      )))
+      ))
     }
   }
-  # --- END OF YOUR NEW CODE ---
+
   
   
   con <- NULL
@@ -443,7 +442,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
         input_tag <- names(settings$run$inputs)[[input_i]]
         input <- settings$run$inputs[[input_tag]]
         
-        # --- Start of changes ---
+
         # Validate BEFORE handling samples
         if (is.null(input$path) || length(input$path) == 0) {
           PEcAn.logger::logger.severe("Input '%s' has no paths specified", input_tag)
@@ -458,19 +457,14 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
               input_tag, length(input$path)
             )
           }
-          if (!file.exists(input$path[[1]])) {  # New: Verify file exists
-            PEcAn.logger::logger.severe(
-              "Input '%s' path '%s' not found", 
-              input_tag, input$path[[1]]
-            )
-          }
+          
           next  # Valid single path, no sampling needed
         }
-        # --- End of changes ---
+       
         
-        # Remaining original code for sampled inputs
+      
         input_paths <- samples[[input_tag]][["samples"]][[i]]
-        # ... (keep existing validation for sampled inputs) ...
+        
       }
       
       do.call(my.write.config, args = list( defaults = defaults, 
