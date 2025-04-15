@@ -35,11 +35,17 @@ for (pkg in packages) {
       warning(paste("No docs folder created for:", pkg))
       next 
     }
+    pkgname <- desc::desc_get("Package", pkg)
     dest <- file.path("_pkgdown_docs", pkgname)
     if (!dir.exists(dest)) {
       dir.create(dest, recursive = TRUE, showWarnings = FALSE)
     }
-    file.copy(from = source_docs, to = dest, recursive = TRUE, overwrite = TRUE)
+    file.copy(
+      from = list.files(source_docs, full.names = TRUE),
+      to = dest,
+      recursive = TRUE,
+      overwrite = TRUE
+    )
     logger("✅ Successfully copied docs from", pkg, "to", dest)
   }, error = function(e) {
     warning(paste("❌ Error building pkgdown site for", pkg, ":", e$message))
