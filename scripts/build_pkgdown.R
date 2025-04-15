@@ -35,8 +35,8 @@ for (pkg in packages) {
       warning(paste("No docs folder created for:", pkg))
       next 
     }
-    dest <- file.path("package_documentation/pkgdocs", pkg)
-    if (!dir.exists(dest)) {  
+    dest <- file.path("_pkgdown_docs", pkgname)
+    if (!dir.exists(dest)) {
       dir.create(dest, recursive = TRUE, showWarnings = FALSE)
     }
     file.copy(from = source_docs, to = dest, recursive = TRUE, overwrite = TRUE)
