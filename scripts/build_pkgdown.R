@@ -9,6 +9,7 @@ if (length(args) == 0) {
 }
 
 packages <- args
+output_dir <- "_pkgdown_docs"
 
 if (requireNamespace("PEcAn.logger", quietly = TRUE)) {
   logger <- PEcAn.logger::logger.info
@@ -36,7 +37,7 @@ for (pkg in packages) {
       next 
     }
     pkgname <- desc::desc_get("Package", pkg)
-    dest <- file.path("_pkgdown_docs", pkgname)
+    dest <- file.path(output_dir, pkgname)
     if (!dir.exists(dest)) {
       dir.create(dest, recursive = TRUE, showWarnings = FALSE)
     }
@@ -55,5 +56,36 @@ for (pkg in packages) {
     setwd(current_wd) 
   })
 }
+
+logger("Creating index page")
+built_pkg_dirs <- list.dirs(output_dir, recursive=FALSE, full.names = FALSE)
+before_text <- c(
+  '<!DOCTYPE html>',
+  '<html lang="en">',
+  '<head>',
+  '  <title>Package-specific documentation for the PEcAn R packages</title>',
+  '</head>',
+  '<body>',
+  '<h1>PEcAn package documentation</h1>',
+  '<p>Function documentation and articles for each PEcAn package,',
+  '   generated from the package source using <code>{pkgdown}</code>.</p>',
+  '',
+  '<ul>'
+)
+listing_text <- paste0(
+  '  <li><a href="', built_pkg_dirs, '/index.html">',
+  built_pkg_dirs,
+  '</a></li>'
+)
+after_text <- c(
+  '  </ul>',
+  '',
+  '</body>',
+  '</html>'
+)
+writeLines(
+  text = c(before_text, listing_text, after_text),
+  con = file.path(output_dir, "index.html")
+)
 
 logger("✅ All packages processed.")
