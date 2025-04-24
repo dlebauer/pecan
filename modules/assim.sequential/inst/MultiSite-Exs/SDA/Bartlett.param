@@ -4,7 +4,6 @@ litterInit			200			0	130			1200				25
 soilInit			1600		0	1400	1700		1000
 litterWFracInit			0.5		1	0		1		0.1
 soilWFracInit			0.5		1	0		1		0.1
-soilWaterInit			50		100	0		100		10
 snowInit			0.0			0	0.0			0.0			1.0
 microbeInit		0.50		0	0.020000	1.000000	0.001000
 fineRootFrac		0.200000	0	0.000000	1.000000	0.001000

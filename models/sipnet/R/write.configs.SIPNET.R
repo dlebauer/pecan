@@ -557,7 +557,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     }
     ## soilWater 
     if ("soilWater" %in% ic.names) {
-      param[which(param[, 1] == "soilWaterInit"), 2] <- IC$soilWater
+      param[which(param[, 1] == "soilWFracInit"), 2] <- IC$soilWater/param[which(param[, 1] == "soilWHC"), 2]
     }
     ## soilWFracInit fraction
     if ("soilWFrac" %in% ic.names) {
