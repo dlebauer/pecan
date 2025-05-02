@@ -78,3 +78,16 @@
 #' contains an identical texture.csv, also with no obvious source label.
 #' See also comments in soil_utils.R
 "soil_class"
+
+#' Crop-PFT mapping
+#'
+#' A lookup table to assign each LandIQ `crop` into one of three PFT
+#' categories: "woody perennial crop", "non-crop", or "annual crop".
+#'
+#' @format A tibble with 2 columns:
+#' \describe{
+#'   \item{crop}{character; the exact LandIQ crop name}
+#'   \item{pft}{character; one of "woody perennial crop", "non-crop"}
+#' }
+#' @source data-raw/landiq_pft_map.R
+"landiq_pft_map"

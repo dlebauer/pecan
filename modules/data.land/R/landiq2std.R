@@ -86,16 +86,13 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   csv_data <- landiq_polygons_updated |>
     tidyr::as_tibble() |>
     dplyr::mutate(
-      crop = .data[[crop_col]],
-      pft = dplyr::case_when(
-        crop %in% c(
-          "Cherries", "Almonds", "Plums, Prunes and Apricots",
-          "Walnuts", "Citrus", "Miscellaneous Deciduous", "Pears", "Olives",
-          "Apples", "Pistachios", "Bush Berries", "Peaches/Nectarines",
-          "Miscellaneous Subtropical Fruits", "Pomegranates"
-        ) ~ "woody perennial crop",
-        TRUE ~ paste0("no PFT for ", crop)
-      )
+      crop = .data[[crop_col]]
+    ) |>
+    # join to external lookup table for pft
+    dplyr::left_join(landiq_pft_map, by = "crop") |>
+    # default any missing pft to "annual crop"
+    dplyr::mutate(
+      pft = dplyr::coalesce(pft, "annual crop")
     ) |>
     dplyr::rename(
       source = Source,
