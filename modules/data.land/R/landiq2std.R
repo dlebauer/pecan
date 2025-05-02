@@ -10,6 +10,7 @@
 #' (GeoPackage created by shp2gpkg is also valid)
 #' @param output_gpkg Character. Path to the output GeoPackage
 #' @param output_csv Character. Path to the output CSV.
+#' @param overwrite Logical. If TRUE, overwrites existing files.
 #'
 #' @return Invisibly returns a list with paths to the output files.
 #' @details
@@ -18,7 +19,8 @@
 #' - Calculates centroids to extract latitude and longitude.
 #' - Converts `Acres` column to hectares (`ha`).
 #' - Extracts crop information and assigns a PFT (Plant Functional Type).
-#' - Outputs a standardized GeoPackage with columns `id`, `geometry`, `lat`, `lon`, and `area_ha`.
+#' - Outputs a standardized GeoPackage (geometry in California Albers,
+#'   EPSG:3310) with columns `id`, `geometry`, `lat`, `lon`, and `area_ha`.
 #' - Outputs a CSV with columns `year`, `crop`, `pft`, `source`, and `notes`.
 #'
 #' Note: TODO provide crop-->PFT mapping as an external file using either
@@ -35,7 +37,7 @@
 #' landiq2std(input_file, output_gpkg, output_csv)
 #'
 #' @export
-landiq2std <- function(input_file, output_gpkg, output_csv) {
+landiq2std <- function(input_file, output_gpkg, output_csv, overwrite = TRUE) {
   # Check input file format
   # If shapefile, convert to GeoPackage
   if (grepl(pattern = "\\.shp$", input_file)) {
@@ -78,9 +80,10 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
     ) |>
     dplyr::rename(county = County)
 
-  # Process data for GeoPackage
+  # Process data for GeoPackage in California Albers (EPSG:3310)
   gpkg_data <- landiq_polygons_updated |>
-    dplyr::select(site_id, geom, lat, lon, area_ha, county)
+    dplyr::select(site_id, geom, lat, lon, area_ha, county) |>
+    sf::st_transform(3310)   # EPSG:3310 = NAD83 / California Albers
 
   # Process data for CSV
   csv_data <- landiq_polygons_updated |>
@@ -112,7 +115,24 @@ landiq2std <- function(input_file, output_gpkg, output_csv) {
   }
 
   # Write outputs
-  file.remove(output_gpkg, output_csv, showWarnings = FALSE)
+  if(!overwrite) {
+    if (file.exists(output_gpkg)) {
+      PEcAn.logger::logger.error("Output GeoPackage already exists. Set overwrite = TRUE to overwrite.")
+    }
+    if (file.exists(output_csv)) {
+      PEcAn.logger::logger.error("Output CSV already exists. Set overwrite = TRUE to overwrite.")
+    }
+  } else {
+    if (file.exists(output_gpkg)) {
+      PEcAn.logger::logger.info("Overwriting existing file", output_gpkg)
+      file.remove(output_gpkg, showWarnings = FALSE)
+    }
+    if (file.exists(output_csv)) {
+      PEcAn.logger::logger.info("Overwriting existing file", output_csv)
+      file.remove(output_csv, showWarnings = FALSE)
+    }
+  }
+
   sf::st_write(gpkg_data,
     output_gpkg,
     layer = "sites", # analogous to BETYdb table name

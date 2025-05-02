@@ -3,7 +3,7 @@ non_crop <- c(
     "Idle", "Managed Wetland", "Urban"
 )
 
-woody_crops <- c(
+woody_crop <- c(
     "Almonds", "Apples", "Avocados", "Bush Berries", "Cherries",
     "Citrus", "Dates", "Grapes", "Kiwis", "Miscellaneous Deciduous",
     "Miscellaneous Subtropical Fruits", "Olives", "Peaches/Nectarines",
@@ -11,7 +11,7 @@ woody_crops <- c(
     "Walnuts", "Young Perennials"
 )   
 
-annual_crops <- c(
+herbaceous_crop <- c(
     "Alfalfa and Alfalfa Mixtures", "Beans (Dry)", "Carrots", "Cole Crops",
     "Corn, Sorghum and Sudan", "Cotton", "Lettuce/Leafy Greens",
     "Melons, Squash and Cucumbers", "Miscellaneous Field Crops",
@@ -31,7 +31,7 @@ landiq_pft_map <- dplyr::bind_rows(
         pft = "non-crop"
     ),
     dplyr::tibble(
-        crop = annual_crops,
-        pft = "annual crop"
+        crop = herbaceous_crop,
+        pft = "herbaceous crop"
     )
 )

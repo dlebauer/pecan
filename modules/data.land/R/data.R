@@ -82,12 +82,12 @@
 #' Crop-PFT mapping
 #'
 #' A lookup table to assign each LandIQ `crop` into one of three PFT
-#' categories: "woody perennial crop", "non-crop", or "annual crop".
+#' categories: "woody perennial crop", "non crop", or "herbaceous crop".
 #'
 #' @format A tibble with 2 columns:
 #' \describe{
 #'   \item{crop}{character; the exact LandIQ crop name}
-#'   \item{pft}{character; one of "woody perennial crop", "non-crop"}
+#'   \item{pft}{character; one of "woody perennial crop", "herbaceous crop", "non-crop"}
 #' }
 #' @source data-raw/landiq_pft_map.R
 "landiq_pft_map"
