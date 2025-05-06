@@ -45,7 +45,7 @@ PEcAn has established patterns for function naming and parameter ordering to ens
   - Functions that convert PEcAn standard met data to a model input: `met2model.<model>` (e.g., `met2model.BIOCRO`).
   - Functions that convert a model output to a standard format should be named `model2netcdf.<model>` (e.g., `model2CF.BIOCRO`).
 
-- **Parameter order**: Follow standard order and naming for function parameters:
+- **Parameter order**: Functions that retrieve data and write it to disk should follow this order and naming for function parameters:
   1. Required parameters without defaults first:
      - `outfolder`: Directory where output will be saved (no default)
      - `start_date`: Beginning date for data (no default)
