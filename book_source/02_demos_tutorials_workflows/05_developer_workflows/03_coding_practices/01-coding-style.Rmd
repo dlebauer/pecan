@@ -42,8 +42,8 @@ PEcAn has established patterns for function naming and parameter ordering to ens
 - **Function naming**: 
   - Functions that download data: `download.<source>` (e.g., `download.ameriflux`).
   - Functions that convert a met data source to PEcAn standard: `met2CF.<source>` (e.g., `met2CF.ameriflux`).
-  - Functions that convert PEcAn standard met data to a model input: `met2model.<model>` (e.g., `met2model.biocro`).
-  - Functions that convert a model output to a standard format should be named `model2netcdf.<model>` (e.g., `model2CF.biocro`).
+  - Functions that convert PEcAn standard met data to a model input: `met2model.<model>` (e.g., `met2model.BIOCRO`).
+  - Functions that convert a model output to a standard format should be named `model2netcdf.<model>` (e.g., `model2CF.BIOCRO`).
 
 - **Parameter order**: Follow standard order and naming for function parameters:
   1. Required parameters without defaults first:
