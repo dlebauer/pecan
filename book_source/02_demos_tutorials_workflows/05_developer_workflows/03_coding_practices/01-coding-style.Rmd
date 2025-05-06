@@ -58,8 +58,7 @@ PEcAn has established patterns for function naming and parameter ordering to ens
   4. Optional parameters with defaults
 
 This pattern is consistent with R norms of placing parameters without defaults before those with defaults. 
-These conventions help maintain consistency across PEcAn modules (meteorology, models, SDA constraints, etc.) 
-and enable scalability.
+These conventions support consistency across PEcAn modules, making the code easier to use, extend, and maintain.
 
 
 # dplyr
