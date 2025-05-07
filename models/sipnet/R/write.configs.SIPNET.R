@@ -519,7 +519,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
        }
       if ("soil_hydraulic_conductivity_at_saturation" %in% names(soil_IC_list$vals)) {
          #litwaterDrainrate in cm/day
-         param[which(param[, 1] == "litWaterDrainRate"), 2] <- unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1]*100/(3600*24)
+         param[which(param[, 1] == "litWaterDrainRate"), 2] <- PEcAn.utils::ud_convert(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1], "m s-1", "cm day-1")
        }
     }else{
       PEcAn.logger::logger.warn("No depth info was found in the soil file. Please check whether the parameters are for the whole profile")
