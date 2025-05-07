@@ -382,6 +382,20 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
       }
       dir.create(file.path(settings$rundir, run.id), recursive = TRUE)
       dir.create(file.path(settings$modeloutdir, run.id), recursive = TRUE)
+      
+      # build dynamic input info string
+      input_info <- ""
+      #changing the structure of input tag to what the models are expecting
+      for(input_i in seq_along(settings$run$inputs)){
+        input_tag <- names(settings$run$inputs)[[input_i]]
+        if (!is.null(samples[[input_tag]])) {
+          settings$run$inputs[[input_tag]][["path"]] <-
+            samples[[input_tag]][["samples"]][[i]]
+          input_info <- paste0(input_info,format(input_tag, width = 12, justify = "left"), ": ", 
+                               samples[[input_tag]]$samples[[i]], "\n")
+        }
+      }
+      
       # write run information to disk
       cat("runtype     : ensemble\n",
           "workflow id : ", format(workflow.id, scientific = FALSE), "\n",
@@ -393,8 +407,7 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "model id    : ", format(settings$model$id, scientific = FALSE), "\n",
           "site        : ", settings$run$site$name, "\n",
           "site  id    : ", format(settings$run$site$id, scientific = FALSE), "\n",
-          "met data    : ", samples$met$samples[[i]], "\n",
-          "soil parameter   : ", samples$soilinitcond$samples[[i]], "\n",
+          input_info,  #  dynamically generated input paths
           "start date  : ", settings$run$start.date, "\n",
           "end date    : ", settings$run$end.date, "\n",
           "hostname    : ", settings$host$name, "\n",
@@ -402,14 +415,6 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           "outdir      : ", file.path(settings$host$outdir, run.id), "\n",
           file = file.path(settings$rundir, run.id, "README.txt"))
       
-      #changing the structure of input tag to what the models are expecting
-      for(input_i in seq_along(settings$run$inputs)){
-        input_tag <- names(settings$run$inputs)[[input_i]]
-        if (!is.null(samples[[input_tag]]))
-          settings$run$inputs[[input_tag]][["path"]] <-
-            samples[[input_tag]][["samples"]][[i]]
-      }
-
       
       do.call(my.write.config, args = list( defaults = defaults, 
                                             trait.values = lapply(samples$parameters$samples, function(x, n) { x[n, , drop=FALSE] }, n=i), # this is the params
@@ -455,6 +460,12 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
     
     # stop and start time are required by bc we are wrtting them down into job.sh
     for (i in seq_len(settings$ensemble$size)) {
+      input_list <- list()
+      for (input_tag in names(inputs)) {
+        if (!is.null(inputs[[input_tag]]$samples[[i]])) 
+          input_list[[input_tag]] <- list(path = inputs[[input_tag]]$samples[[i]])
+      }
+      
       do.call(my.write_restart, 
               args =  list(outdir = settings$host$outdir, 
                            runid = run.id[[i]], 
@@ -463,12 +474,12 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
                            settings = settings,
                            new.state = new.state[i, ], 
                            new.params = new.params[[i]], #new.params$`646`[[i]] for debugging
-                           inputs =list(met=list(path=inputs$met$samples[[i]]),soilinitcond=list(path=inputs$soilinitcond$samples[[i]])), 
+                           inputs = input_list,
                            RENAME = rename)#for restart from previous model runs, not sharing the same outdir
       )
     }
     params<-new.params
-    return(invisible(list(runs = data.frame(id=run.id), ensemble.id = ensemble.id, samples=list(met=inputs$met,soilinitcond=inputs$soilinitcond)
+    return(invisible(list(runs = data.frame(id=run.id), ensemble.id = ensemble.id, samples=inputs
     )
     ))
   }

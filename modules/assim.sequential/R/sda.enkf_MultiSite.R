@@ -356,7 +356,9 @@ sda.enkf.multisite <- function(settings,
       new.params <- sda_matchparam(settings, ensemble.samples, site.ids, nens)
     }
       
-   #sample all inputs specified in the settings$ensemble
+ 
+  #TODO: incorporate Phyllis's restart work
+  #sample all inputs specified in the settings$ensemble not just met
    #now looking into the xml
    samp <- conf.settings$ensemble$samplingspace
    #finding who has a parent
@@ -395,43 +397,8 @@ sda.enkf.multisite <- function(settings,
       if (t>1){
         #for next time step split the met if model requires
         #-Splitting the input for the models that they don't care about the start and end time of simulations and they run as long as their met file.
-        #set start and end date for splitting met
-        start.time = obs.times[t - 1] #always start timestep before
-        
-        if(restart_flag){
-          stop.time = settings$run$site$met.end
-        }else{
-          stop.time = obs.times[t]
-        }
-        
-        
-        #-Splitting the input for the models that they don't care about the start and end time of simulations and they run as long as their met file.
-        inputs.split <- 
-          furrr::future_pmap(list(conf.settings %>% `class<-`(c("list")), inputs, model), function(settings, inputs, model) {
-            # Loading the model package - this is required bc of the furrr
-            library(paste0("PEcAn.",model), character.only = TRUE)
-            
-            inputs.split <- inputs
-            if (!no_split) {
-              for (i in seq_len(nens)) {
-                #---------------- model specific split inputs
-                inputs.split$met$samples[i] <- do.call(
-                  my.split_inputs,
-                  args = list(
-                    settings = settings,
-                    start.time = (lubridate::ymd_hms(start.time, truncated = 3) + lubridate::second(lubridate::hms("00:00:01"))),
-                    stop.time =   lubridate::ymd_hms(stop.time, truncated = 3),
-                    inputs = inputs$met$samples[[i]])
-                )
-              }
-            } else{
-              inputs.split <- inputs
-            }
-            inputs.split
-          })
-        
-        
-        
+        inputs.split <- metSplit(conf.settings, inputs, settings, model, no_split = FALSE, obs.times, t, nens, restart_flag = FALSE, my.split_inputs)
+    
         #---------------- setting up the restart argument for each site separately and keeping them in a list
         restart.list <-
           furrr::future_pmap(list(out.configs, conf.settings %>% `class<-`(c("list")), params.list, inputs.split),

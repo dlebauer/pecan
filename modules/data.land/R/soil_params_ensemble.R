@@ -206,10 +206,10 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
   if (write_into_settings) {
     for (i in seq_along(PATH)) {
       ind <- which(settings_id == names(PATH)[i])
-      settings[[ind]]$run$inputs$soilinitcond$source <- "SoilGrids"
-      settings[[ind]]$run$inputs$soilinitcond$output <- "soilinitcond"
-      settings[[ind]]$run$inputs$soilinitcond$ensemble <- ens_n
-      settings[[ind]]$run$inputs$soilinitcond$path <-create_mult_list(rep("path", ens_n), PATH[[i]])
+      settings[[ind]]$run$inputs$soil_physics$source <- "SoilGrids"
+      settings[[ind]]$run$inputs$soil_physics$output <- "soil_physics"
+      settings[[ind]]$run$inputs$soil_physics$ensemble <- ens_n
+      settings[[ind]]$run$inputs$soil_physics$path <-create_mult_list(rep("path", ens_n), PATH[[i]])
     }
     write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
   }

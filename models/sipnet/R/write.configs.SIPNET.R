@@ -490,16 +490,22 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
   } ## end loop over PFTS
   ####### end parameter update
   #working on reading soil file
-  if (length(settings$run$inputs$soilinitcond$path) > 0) {
-    template.soilinit <- settings$run$inputs$soilinitcond$path  ## read from settings
+  if (length(settings$run$inputs$soil_physics$path) > 0) {
+    template.soil_physics <- settings$run$inputs$soil_physics$path  ## read from settings
     
     if (!is.null(inputs)) {
       ## override if specified in inputs
-      if ("soilinitcond" %in% names(inputs)) {
-        template.soilinit <- inputs$soilinitcond$path
+      if ("soil_physics" %in% names(inputs)) {
+        template.soil_physics <- inputs$soil_physics$path
       }
     }
-    soil_IC_list <- PEcAn.data.land::pool_ic_netcdf2list(template.soilinit)
+    
+    if (length(template.soil_physics)!=1) {
+      PEcAn.logger::logger.warn(
+        paste0("No single soil physical parameter file was found for ",
+               run.id))
+    } else {
+    soil_IC_list <- PEcAn.data.land::pool_ic_netcdf2list(template.soil_physics)
     # Calculate the thickness of soil layers based on the assumption that the depth values are at bottoms and the first layer top is at 0
     if ("depth" %in% names(soil_IC_list$dims)) {
       thickness<-c(soil_IC_list$dims$depth[1],diff(soil_IC_list$dims$depth))
@@ -518,7 +524,8 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     }else{
       PEcAn.logger::logger.warn("No depth info was found in the soil file. Please check whether the parameters are for the whole profile")
        }
-  }   
+    }
+  }
   if (!is.null(IC)) {
     ic.names <- names(IC)
     ## plantWoodInit gC/m2

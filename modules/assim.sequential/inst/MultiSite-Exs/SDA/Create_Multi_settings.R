@@ -224,8 +224,8 @@ template <- PEcAn.settings::Settings(list(
   ###########################################################################
   ensemble = structure(list(size = 25, variable = "NPP", 
                             samplingspace = structure(list(
-                              parameters = structure(list(method = "lhc")),
-                              soilinitcond = structure(list(method = "sampling")),
+                              parameters = structure(list(method = "sampling")),
+                              soil_physics = structure(list(method = "sampling")),
                               met = structure(list(method = "sampling"))
                             ))
   )),
