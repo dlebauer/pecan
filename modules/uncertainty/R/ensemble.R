@@ -216,22 +216,24 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
   
   
   # Check if there are NO inputs
-  if (is.null(defaults$inputs)) {
-    PEcAn.logger::logger.severe("No inputs provided - cannot configure ensemble")
+ 
+for (input_tag in names(settings$run$inputs)) {
+  input <- settings$run$inputs[[input_tag]]
+  input_paths <- input$path
+  
+  # Check for required paths
+  if (is.null(input_paths) || length(input_paths) == 0) {
+    PEcAn.logger::logger.error("Input '%s' has no paths specified", input_tag)
   }
   
-  # Check each input type (e.g., soil, veg)
-  for (input_type in names(defaults$inputs)) {
-    input_paths <- defaults$inputs[[input_type]]$path
-    
-    # Case: Multiple inputs + no samples → Error
-    if (length(input_paths) > 1 && is.null(ensemble.samples)) {
-      PEcAn.logger::logger.error(paste(
-        "Multiple", input_type, "inputs found but no sampling method specified.",
-        "Add a sampling method to pecan.xml (e.g., <method>uniform</method>)"
-      ))
-    }
+  # Check for unsampled multi-path inputs
+  if (length(input_paths) > 1 && 
+     !(input_tag %in% names(settings$ensemble$samplingspace))) {
+    PEcAn.logger::logger.error(
+      "Input '%s' has %d paths but no sampling method. Add <samplingspace> for this input in pecan.xml",
+      input_tag, length(input_paths))
   }
+}
 
   
   
@@ -437,35 +439,21 @@ write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,
           file = file.path(settings$rundir, run.id, "README.txt"))
       
       
-      #changing the structure of input tag to what the models are expecting
-      for (input_i in seq_along(settings$run$inputs)) {
-        input_tag <- names(settings$run$inputs)[[input_i]]
-        input <- settings$run$inputs[[input_tag]]
-        
+    #changing the structure of input tag to what the models are expecting
+for (input_i in seq_along(settings$run$inputs)) {
+  input_tag <- names(settings$run$inputs)[[input_i]]
+  input <- settings$run$inputs[[input_tag]]
+  
+  
+  if (!input_tag %in% names(samples)) {
+    # Use first path (already validated as single path)
+    settings$run$inputs[[input_tag]]$path <- input$path[1]
+  } else {
+    # Use sampled path
+    settings$run$inputs[[input_tag]]$path <- samples[[input_tag]][["samples"]][[i]]
+  }
 
-        # Validate BEFORE handling samples
-        if (is.null(input$path) || length(input$path) == 0) {
-          PEcAn.logger::logger.severe("Input '%s' has no paths specified", input_tag)
-        }
-        
-        # Check unsampled inputs first
-        if (!input_tag %in% names(samples)) {
-          if (length(input$path) > 1) {
-            PEcAn.logger::logger.severe(
-              paste("Input '%s' has %d paths but no sampling method.",
-                    "Add <samplingspace> for this input in pecan.xml"),
-              input_tag, length(input$path)
-            )
-          }
-          
-          next  # Valid single path, no sampling needed
-        }
-       
-        
-      
-        input_paths <- samples[[input_tag]][["samples"]][[i]]
-        
-      }
+}
       
       do.call(my.write.config, args = list( defaults = defaults, 
                                             trait.values = lapply(samples$parameters$samples, function(x, n) { x[n, , drop=FALSE] }, n=i), # this is the params
@@ -591,3 +579,4 @@ input.ens.gen <- function(settings, input, method = "sampling", parent_ids = NUL
 
   return(samples)
 }
+
