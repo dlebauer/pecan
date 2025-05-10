@@ -1,105 +1,85 @@
-context("Ensemble Configuration Tests")
+library(testthat)
+library(PEcAn.logger)
+library(PEcAn.DB)
 
-# Mock the core functions we need to test
-write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, 
-                                   clean = FALSE, write.to.db = TRUE, 
-                                   restart = NULL, rename = FALSE) {
-  # Input validation
-  if (length(settings$run$inputs) == 0) {
-    stop("has no paths specified")
+
+source("modules/uncertainty/R/ensemble.R")
+dummy_binary_path <- file.path(tempdir(), "sipnet")
+file.create(dummy_binary_path)
+# Mock SIPNET writer
+if (!exists("write.config.SIPNET")) {
+  write.config.SIPNET <- function(...) {
+    PEcAn.logger::logger.info("Mock SIPNET writer called")
+    return(invisible(TRUE))
   }
-  
-  # Check for unsampled multi-path inputs
-  for (input in names(settings$run$inputs)) {
-    paths <- settings$run$inputs[[input]]$path
-    if (length(paths) > 1 && !(input %in% names(settings$ensemble$samplingspace))) {
-      stop("no sampling method")
-    }
-  }
-  
-  # Return dummy result
-  list(
-    runs = data.frame(id = paste0("ENS", 1:settings$ensemble$size)),
-    ensemble.id = 1,
-    samples = lapply(settings$run$inputs, function(x) list(samples = x$path))
-  )
 }
 
-# Helper to create minimal settings
-get_test_settings <- function(inputs = list(met = list(path = "default/path")),
-                              ensemble_size = 1,
-                              samplingspace = list()) {
+context("Ensemble Input Validation Tests")
+
+create_base_settings <- function() {
   list(
+    workflow = list(id = 1),
+    model = list(
+      id = 1000,
+      type = "SIPNET",
+      binary = dummy_binary_path
+    ),
     run = list(
-      inputs = inputs,
-      site = list(id = 1, name = "test"),
-      outdir = "test_out",
-      rundir = "test_run"
+      site = list(id = 1, name = "Test Site", lat = 40.0, lon = -80.0),
+      start.date = "2004-01-01",
+      end.date = "2004-12-31"
     ),
-    ensemble = list(
-      size = ensemble_size,
-      samplingspace = samplingspace
+    host = list(
+      outdir = tempdir(),
+      rundir = tempdir(),
+      name = "localhost"
     ),
-    model = list(id = 100),
-    database = list(bety = list(write = FALSE)),
-    host = list(name = "localhost")
+    database = list(bety = list(write = FALSE))
   )
 }
 
-# Test cases
-test_that("single input without sampling uses the input directly", {
-  settings <- get_test_settings()
-  result <- write.ensemble.configs(NULL, NULL, settings, "SIPNET")
-  expect_equal(result$samples$met$samples, "default/path")
-})
-
-test_that("single input with matching samples works", {
-  settings <- get_test_settings()
-  samples <- list(pft1 = data.frame(param1 = rep(1, 3))) # 3 identical samples
-  expect_silent(write.ensemble.configs(NULL, samples, settings, "SIPNET"))
-})
-
-test_that("multiple inputs without sampling throws error", {
-  settings <- get_test_settings(
-    inputs = list(met = list(path = c("path1", "path2")))
+test_that("Single input with no samples works", {
+  withr::local_tempdir()
+  
+  def <- list(
+    inputs = list(soil = list(path = "soil1.nc")),
+    pfts = list(list(
+      name = "temperate.pft",
+      constants = list(param1 = 0.5)
+    )),
+    model = list(id = 1000),
+    database = list(bety = list(write = FALSE))
   )
+  
+  settings <- create_base_settings()
+  settings$run$inputs <- list(soil = list(path = "soil1.nc"))
+  settings$ensemble <- list(size = 1)
+  
+  writeLines("", "soil1.nc")
+  
+  result <- write.ensemble.configs(def, NULL, settings, "SIPNET")
+  expect_true(!is.null(result$runs))
+  expect_true(!is.null(result$ensemble.id))
+})
+
+test_that("Multiple inputs without samples throws error", {
+  def <- list(
+    inputs = list(soil = list(path = c("soil1.nc", "soil2.nc"))),
+    pfts = list(list(
+      name = "temperate.pft",
+      constants = list(param1 = 0.5)
+    )),
+    model = list(id = 1000),
+    database = list(bety = list(write = FALSE))
+  )
+  
+  settings <- create_base_settings()
+  settings$ensemble <- list(size = 1)
+  
+  purrr::walk(c("soil1.nc", "soil2.nc"), ~ writeLines("", .x))
+  
   expect_error(
-    write.ensemble.configs(NULL, NULL, settings, "SIPNET"),
-    "no sampling method"
-  )
-})
-
-test_that("multiple inputs with correct sampling works", {
-  settings <- get_test_settings(
-    inputs = list(met = list(path = c("path1", "path2"))),
-    samplingspace = list(met = list(method = "sampling"))
-  )
-  result <- write.ensemble.configs(NULL, NULL, settings, "SIPNET")
-  expect_equal(length(result$samples$met$samples), 2)
-})
-
-test_that("no inputs throws error", {
-  settings <- get_test_settings(inputs = list())
-  expect_error(
-    write.ensemble.configs(NULL, NULL, settings, "SIPNET"),
-    "has no paths specified"
-  )
-})
-
-test_that("mismatched samples throw error", {
-  settings <- get_test_settings(
-    inputs = list(met = list(path = "only/path")),
-    samplingspace = list(met = list(method = "sampling"))
-  )
-  # This would fail in real implementation
-  # For this simplified version, we test the sampling check
-  expect_error(
-    write.ensemble.configs(
-      NULL, 
-      NULL, 
-      get_test_settings(inputs = list(met = list(path = "only/path"))),
-      "SIPNET"
-    ),
-    NA  # Expect no error in this simplified version
+    write.ensemble.configs(def, NULL, settings, "SIPNET"),
+    "Multiple soil inputs found but no sampling method specified"
   )
 })
