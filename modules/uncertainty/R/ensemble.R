@@ -223,15 +223,15 @@ for (input_tag in names(settings$run$inputs)) {
   
   # Check for required paths
   if (is.null(input_paths) || length(input_paths) == 0) {
-    PEcAn.logger::logger.error("Input '%s' has no paths specified", input_tag)
+     PEcAn.logger::logger.error("Input", sQuote(input_tag), "has no paths specified")
   }
   
   # Check for unsampled multi-path inputs
   if (length(input_paths) > 1 && 
      !(input_tag %in% names(settings$ensemble$samplingspace))) {
     PEcAn.logger::logger.error(
-      "Input '%s' has %d paths but no sampling method. Add <samplingspace> for this input in pecan.xml",
-      input_tag, length(input_paths))
+      "Input", sQuote(input_tag), "has", length(input_paths), "paths but no sampling method.",
+      "Add <samplingspace> for this input in pecan.xml")
   }
 }
 
@@ -437,23 +437,26 @@ for (input_tag in names(settings$run$inputs)) {
           "rundir      : ", file.path(settings$host$rundir, run.id), "\n",
           "outdir      : ", file.path(settings$host$outdir, run.id), "\n",
           file = file.path(settings$rundir, run.id, "README.txt"))
-      
+
+
       
     #changing the structure of input tag to what the models are expecting
 for (input_i in seq_along(settings$run$inputs)) {
-  input_tag <- names(settings$run$inputs)[[input_i]]
-  input <- settings$run$inputs[[input_tag]]
+            input_tag <- names(settings$run$inputs)[[input_i]]
+            input <- settings$run$inputs[[input_tag]]
   
   
-  if (!input_tag %in% names(samples)) {
-    # Use first path (already validated as single path)
-    settings$run$inputs[[input_tag]]$path <- input$path[1]
-  } else {
-    # Use sampled path
-    settings$run$inputs[[input_tag]]$path <- samples[[input_tag]][["samples"]][[i]]
+     if (!input_tag %in% names(samples)) {
+        # Use first path (already validated as single path)
+        settings$run$inputs[[input_tag]]$path <- input$path[1]  } 
+        else {
+           # Use sampled path
+          settings$run$inputs[[input_tag]]$path <- samples[[input_tag]][["samples"]][[i]]
   }
 
 }
+
+
       
       do.call(my.write.config, args = list( defaults = defaults, 
                                             trait.values = lapply(samples$parameters$samples, function(x, n) { x[n, , drop=FALSE] }, n=i), # this is the params
