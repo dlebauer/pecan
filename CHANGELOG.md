@@ -10,9 +10,9 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 ### Added
 
 - Documentation of `make` options including addition of `make help` 
+- Removed reference to PEcAn VM from documentation #3478
 - Add make option to document a single package with `make documentation pathto/package`
 - `settings$host$qsub` and `settings$host$modellauncher$qsub.extra` will now expand `@NJOBS@` to the number of models in the run, allowing e.g. `--array=1-@NJOBS@`. Note that qsub still by default submits every model as a separate job, so for now this is mostly useful for custom modellauncher scripts
-
 - Added automated pkgdown documentation for all PEcAn packages (@divine7022, #3482): 
   - Compiled pages are live at https://pecanproject.github.io/package-documentation and inside Docker at `pecan.localhost/pkgdocs/`, and these are automatically updated each time a PR to the source packages is merged.
   - You can compile all pkgdown pages locally at any time with `make pkgdocs`.
