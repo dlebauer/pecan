@@ -441,7 +441,7 @@ for (input_tag in names(settings$run$inputs)) {
 
       
     #changing the structure of input tag to what the models are expecting
-for (input_i in seq_along(settings$run$inputs)) {
+    for (input_i in seq_along(settings$run$inputs)) {
             input_tag <- names(settings$run$inputs)[[input_i]]
             input <- settings$run$inputs[[input_tag]]
   
