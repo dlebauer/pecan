@@ -10,6 +10,8 @@ Data Sources:
     - https://data.chc.ucsb.edu/products/CHIRPS-2.0/
     
 Main Storage Folder: /projectnb/dietzelab/ccmmf/management/irrigation
+Github Code Storage Folder: /projectnb/dietzelab/ccmmf/management/irrigation/
+                            pecan/modules/data.remote/inst/Python
 
 How to use SCC:
 - When creating desktop ensure -> Extra qsub options: -l buyin
@@ -24,7 +26,7 @@ How to use SCC:
         - This may take a second to run. Be patient it will open eventually.
 
 Google Earth Engine Account:
-- Contact __ for a new Google Earth Enginge project
+- Contact Brian Anderson (andyson@bu.edu) for a new Google Earth Enginge project
 - Go to https://code.earthengine.google.com/
 - Click on your profile picture in the top right corner
 - Select Project Info
@@ -65,7 +67,7 @@ Organization:
     - WaterBalanceCSV: This is where all of the csv files for each location get
     saved. This is a back up way to save all of the data and also makes it easier
     to quickly view data per location. Each file is labeled with the corresponding
-    lat and long coordinate. The folder name is defined in "Define multi use 
+    lat and long coordinate. The folder name is defined in the "Define multi use 
     variables" section of CCMMF_Irrigation_API.
     - TimeseriesPNG: This is where the timeseries graphs for each location and
     each year are saved. There is no variable name for this folder it is simply
@@ -78,6 +80,11 @@ Organization:
     - CCMMF_Irrigation_EventFiles: This holds all of the event txt files for each
     location. The column names are in the header of CCMMF_Irrigation_Events. The
     naming format for the files is irrigation_eventfile_{location_id}.txt.
+    - pecan: This folder contains the entire pecan repo from Github. The only portion
+    of this that is needed is the Python code files which can be found in Python_Code.
+    - Python_Code: This is a symlink to the folder within pecan that holds all
+    of the .py files. This is so that you can add the files to the pecan Github
+    repo.
 - Other
     - chirps-v2.0.{year}.days_p05.nc: These are the files that contain the downloaded
     CHIRPS data on a daily scale for the whole world. They are downloaded from the
@@ -114,7 +121,8 @@ Functions (by files):
     - CHIRPSData: This function downloads the .nc file from the CHIRPS website
     and then reads in the values for the closest latitude longitude values. It 
     then returns the data as a dataframe.
-    - new_data_entry_API:
+    - new_data_entry_API: This function calls on other functions to download and
+    organize the years and location that was passed to it.
 - CCMMF_Irrigation_CalcVis
     - water_balance: This function takes the raw data for each location and calculates
     the water balance equation for each time step. It also calculates the different

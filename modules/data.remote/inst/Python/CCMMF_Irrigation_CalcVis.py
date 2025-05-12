@@ -98,7 +98,7 @@ def timeseries_graphs(df_water_balance, LAT, LON, YEAR):
     plt.grid()
     
     # Save plot
-    filename = f'TimeseriesPNG/CCMMR_et_precip_irr_cumsum_{YEAR}_{LAT}_{LON}.png'
+    filename = f'/projectnb/dietzelab/ccmmf/management/irrigation/TimeseriesPNG/CCMMR_et_precip_irr_cumsum_{YEAR}_{LAT}_{LON}.png'
     plt.savefig(filename)
     
     plt.show()

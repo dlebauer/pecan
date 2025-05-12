@@ -51,6 +51,10 @@ def GEEOpenET(START_DATE, END_DATE, LAT, LON):
 
 def OpenETData(START_DATE, END_DATE, LAT, LON):
     
+    # Set directory
+    working_dir = '/projectnb/dietzelab/ccmmf/management/irrigation/'
+    os.chdir(working_dir)
+    
     # Read in API Key
     with open('OpenETAPIKey.txt', 'r') as file:
         api_key = file.readline()
@@ -90,7 +94,7 @@ def CHIRPSData(YEAR, LAT, LON):
     
     # Set URL and file name
     url = f'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/chirps-v2.0.{YEAR}.days_p05.nc'
-    destfile = f'chirps-v2.0.{YEAR}.days_p05.nc'
+    destfile = f'/projectnb/dietzelab/ccmmf/management/irrigation/chirps-v2.0.{YEAR}.days_p05.nc'
     
     # Check if the file already exists before downloading
     if not os.path.exists(destfile):

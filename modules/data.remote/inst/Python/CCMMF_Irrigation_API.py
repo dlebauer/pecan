@@ -29,11 +29,14 @@ ee.Initialize()
 # Define years to look at
 years = list(range(2016, 2026))
 
+# Define main folder
+main_folder = '/projectnb/dietzelab/ccmmf/management/irrigation/'
+
 # Define folder name for csv files
-csv_folder = 'WaterBalanceCSV/'
+csv_folder = main_folder + 'WaterBalanceCSV/'
 
 # Define the name of the parquet filename
-pq_filename = 'CCMMF_Irrigation_Parquet'
+pq_filename = main_folder + 'CCMMF_Irrigation_Parquet'
 
 # %% Loading data
 
@@ -54,7 +57,7 @@ data_dict = {location: location_df for location, location_df in parquet_df.group
 # We only do this if the data is not up to date
 cur_year = datetime.now().year
 today = datetime.now().date()
-chirps_filename = f'chirps-v2.0.{cur_year}.days_p05.nc'
+chirps_filename = f'{main_folder}chirps-v2.0.{cur_year}.days_p05.nc'
 
 if os.path.exists(chirps_filename):
     with Dataset(chirps_filename, 'r') as nc:
@@ -72,14 +75,14 @@ if os.path.exists(chirps_filename):
 # %% Define locations
 
 # Read in all lat lons
-df_lat_lon = pd.read_csv('design_points.csv')
+df_lat_lon = pd.read_csv(f'{main_folder}design_points.csv')
 
 # Handle duplicates
 df_lat_lon = df_lat_lon.drop_duplicates()
 
 # %% Iterate through locations and download data for each 
 
-for row_number in range(29):
+for row_number in range(34):
     
     # Load location data
     latitude = df_lat_lon['lat'].iloc[row_number]

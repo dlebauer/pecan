@@ -50,7 +50,7 @@ def file_creation(data_dict):
         eventfile_df = eventfile_df.drop('week', axis = 1)
         
         # Write to file(s)
-        folder_name = 'CCMMF_Irrigation_EventFiles/'
+        folder_name = '/projectnb/dietzelab/ccmmf/management/irrigation/CCMMF_Irrigation_EventFiles/'
         filename = f'{folder_name}irrigation_eventfile_{key}.txt'
         eventfile_df.to_csv(filename, sep = ' ', index = False, header = False)
 
