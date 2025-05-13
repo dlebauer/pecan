@@ -120,11 +120,11 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
       "fraction_of_clay_in_soil",
       "fraction_of_silt_in_soil"))
   
-  # Substitute the depth range with the bottom depth values (with the assumption that the first layer's top is at 0)
+  # Substitute the depth range with the bottom depth values in m (with the assumption that the first layer's top is at 0)
   texture_all$soil_depth <-
-    gsub("100-200cm", 200, gsub("60-100cm", 100, gsub(
-      "30-60cm", 60, gsub("15-30cm", 30, gsub(
-        "5-15cm", 15, gsub("0-5cm", 5, texture_all$soil_depth))))))
+    gsub("100-200cm", 2, gsub("60-100cm", 1, gsub(
+      "30-60cm", 0.6, gsub("15-30cm", 0.3, gsub(
+        "5-15cm", 0.15, gsub("0-5cm", 0.05, texture_all$soil_depth))))))
   texture_all$soil_depth <- as.numeric(texture_all$soil_depth)
   # Reformat the list based on site id
   f1 <- factor(texture_all$siteid, levels = unique(texture_all$siteid))
