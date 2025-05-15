@@ -505,28 +505,31 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
         paste0("No single soil physical parameter file was found for ",
                run.id))
     } else {
-    soil_IC_list <- PEcAn.data.land::pool_ic_netcdf2list(template.soil_physics)
+      soil_IC_list <- PEcAn.data.land::pool_ic_netcdf2list(template.soil_physics)
       #SoilWHC
       if ("volume_fraction_of_water_in_soil_at_saturation" %in% names(soil_IC_list$vals)) {
-        # Calculate the thickness of soil layers based on the assumption that the depth values are at bottoms and the first layer top is at 0
+        #if depth is provided in the file
         if ("depth" %in% names(soil_IC_list$dims)) {
+          # Calculate the thickness of soil layers based on the assumption that the depth values are at bottoms and the first layer top is at 0
           thickness<-c(soil_IC_list$dims$depth[1],diff(soil_IC_list$dims$depth))
+          thickness<-PEcAn.utils::ud_convert(thickness, "m", "cm")
           # Calculate the soilWHC for the whole soil profile in cm
           soilWHC_total <- sum(unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])*thickness)
-          #LitterWHC in cm (top soil layer)
-         param[which(param[, 1] == "litterWHC"), 2] <- unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])[1]*thickness[1]
+          if (thickness[1]<=10) {
+            #LitterWHC in cm, assuming the litter depth is within the top 10 cm
+            param[which(param[, 1] == "litterWHC"), 2] <- unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])[1]*thickness[1]
+          }
         } else {
-          thickness <- 100 #assume the soil depth is the plant rooting depth of 100cm if no soil depth is provided in the file, or use the user-specified soil depth
+          #if no depth/thickness is provided
+          PEcAn.logger::logger.warn("No depth info was found in the soil file. Will use the default or user-specified soil depth")
+          thickness <- 100 #assume the default soil depth is the plant rooting depth of 100 cm, or use the user-specified value
           soilWHC_total <- soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"]*thickness
         }
         param[which(param[, 1] == "soilWHC"), 2] <- soilWHC_total
-        }
+      }
       if ("soil_hydraulic_conductivity_at_saturation" %in% names(soil_IC_list$vals)) {
          #litwaterDrainrate in cm/day
          param[which(param[, 1] == "litWaterDrainRate"), 2] <- PEcAn.utils::ud_convert(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1], "m s-1", "cm day-1")
-       }
-    }else{
-      PEcAn.logger::logger.warn("No depth info was found in the soil file. Please check whether the parameters are for the whole profile")
        }
     }
   }

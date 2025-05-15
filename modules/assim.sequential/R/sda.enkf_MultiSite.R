@@ -358,30 +358,42 @@ sda.enkf.multisite <- function(settings,
       
  
   #TODO: incorporate Phyllis's restart work
-  #sample all inputs specified in the settings$ensemble not just met
-   #now looking into the xml
-   samp <- conf.settings$ensemble$samplingspace
-   #finding who has a parent
-   parents <- lapply(samp,'[[', 'parent')
-   #order parents based on the need of who has to be first
-   order <- names(samp)[lapply(parents, function(tr) which(names(samp) %in% tr)) %>% unlist()] 
-   #new ordered sampling space
-   samp.ordered <- samp[c(order, names(samp)[!(names(samp) %in% order)])]
-   #performing the sampling
-   inputs <- vector("list", length(conf.settings))
-   # For the tags specified in the xml I do the sampling
-   for (s in seq_along(conf.settings)){
-      if (is.null(inputs[[s]])) {
-        inputs[[s]] <- list() 
-      }
-     for (i in seq_along(samp.ordered)){
-         #call the function responsible for generating the ensemble
-        inputs[[s]][[names(samp.ordered)[i]]] <- input.ens.gen(settings=conf.settings[[s]],
-                                                             input=names(samp.ordered)[i],
-                                                             method=samp.ordered[[i]]$method,
-                                                             parent_ids=NULL)
+  #sample all inputs specified in the settings$ensemble
+  #now looking into the xml
+  samp <- conf.settings$ensemble$samplingspace
+  #finding who has a parent
+  parents <- lapply(samp,'[[', 'parent')
+  #order parents based on the need of who has to be first
+  order <- names(samp)[lapply(parents, function(tr) which(names(samp) %in% tr)) %>% unlist()] 
+  #new ordered sampling space
+  samp.ordered <- samp[c(order, names(samp)[!(names(samp) %in% order)])]
+  #performing the sampling
+  inputs <- vector("list", length(conf.settings))
+  #for the tags specified in the xml, do the sampling for a random site and then replicate the same sample ids for the remaining sites for each ensemble member 
+  for (i in seq_along(samp.ordered)) {
+    random_site <- sample(1:length(conf.settings),1)
+    if (is.null(inputs[[random_site]])) {
+      inputs[[random_site]] <- list() 
+    }
+    input_tag<-names(samp.ordered)[i]
+    #call the function responsible for generating the ensemble for the random site
+    inputs[[random_site]][[input_tag]] <- input.ens.gen(settings=conf.settings[[random_site]],
+                                                        input=input_tag,
+                                                        method=samp.ordered[[i]]$method,
+                                                        parent_ids=NULL)
+    #replicate the same ids for the remaining sites
+    for (s in seq_along(conf.settings)) {
+      if (s!= random_site) {
+        if (is.null(inputs[[s]])) {
+          inputs[[s]] <- list() 
+        }
+        input_path <- conf.settings[[s]]$run$inputs[[tolower(input_tag)]]$path
+        inputs[[s]][[input_tag]]$ids<-inputs[[random_site]][[input_tag]]$ids
+        inputs[[s]][[input_tag]]$samples<- input_path[inputs[[random_site]][[input_tag]]$ids]
       }
     }
+  }
+  
       
 
   ###------------------------------------------------------------------------------------------------###
