@@ -17,10 +17,12 @@ from datetime import datetime, date, timedelta
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.dataset as ds
+import ee
 import CCMMF_Irrigation_DataDownload
 import CCMMF_Irrigation_CalcVis
 import CCMMF_Irrigation_Events
 
+ee.Initialize()
 
 # %% Define multi use variables
 
@@ -31,10 +33,10 @@ years = list(range(2016, 2026))
 main_folder = '/projectnb/dietzelab/ccmmf/management/irrigation/'
 
 # Define folder name for csv files
-csv_folder = main_folder + 'WaterBalanceCSV/'
+csv_folder = main_folder + 'WaterBalanceCSV_GEE/'
 
 # Define the name of the parquet filename
-pq_filename = main_folder + 'CCMMF_Irrigation_Parquet'
+pq_filename = main_folder + 'CCMMF_Irrigation_Parquet_GEE'
 
 # %% Loading data
 
@@ -78,17 +80,17 @@ df_lat_lon = pd.read_csv(f'{main_folder}design_points.csv')
 # Handle duplicates
 df_lat_lon = df_lat_lon.drop_duplicates()
 
-# %% Iterate through locations and download data for each 
+# %% Iterate through locations and download data for each
 
-for row_number in range(35):
+for row_number in range(5):
     
     # Load location data
     latitude = df_lat_lon['lat'].iloc[row_number]
     longitude = df_lat_lon['lon'].iloc[row_number]
     location = df_lat_lon['id'].iloc[row_number]
     
-    # Create CSV filename
-    csv_filename = f'{csv_folder}CCMMR_Water_Balance_{latitude}_{longitude}.csv'
+    # Create CSV name
+    csv_filename = f'{csv_folder}CCMMR_Water_Balance_{latitude}_{longitude}_GEE.csv'
 
     if location in data_dict:
         
@@ -98,7 +100,7 @@ for row_number in range(35):
         if days_to_download != 0:
             # Download new data
             start_date = today - timedelta(days=days_to_download)
-            new_df = CCMMF_Irrigation_DataDownload.new_data_entry_API(latitude, longitude, 
+            new_df = CCMMF_Irrigation_DataDownload.new_data_entry_GEE(latitude, longitude, 
                                                                       [start_date.year, cur_year],
                                                                       csv_folder, start_date, today)
             
@@ -123,7 +125,7 @@ for row_number in range(35):
             not_saved_years = list(not_saved_years)
             
             # Download data and calculate for new years
-            new_df = CCMMF_Irrigation_DataDownload.new_data_entry_API(latitude, longitude,
+            new_df = CCMMF_Irrigation_DataDownload.new_data_entry_GEE(latitude, longitude,
                                                                       not_saved_years, csv_folder)
             
             # Concatenate with already saved data
@@ -138,7 +140,7 @@ for row_number in range(35):
     # The location is not in the saved dictionary
     else:
         # Download and calculate if it doesn't exist
-        df = CCMMF_Irrigation_DataDownload.new_data_entry_API(latitude, longitude,
+        df = CCMMF_Irrigation_DataDownload.new_data_entry_GEE(latitude, longitude,
                                                               years, csv_folder)
         data_dict[location] = df
         
@@ -147,7 +149,7 @@ for row_number in range(35):
 
 # %% Create Event Files
 
-CCMMF_Irrigation_Events.file_creation(data_dict)
+#CCMMF_Irrigation_Events.file_creation(data_dict)
 
 # %% Write to parquet
 

@@ -13,12 +13,8 @@ import pandas as pd
 
 # %% Turn raw data into usable data
 
-def water_balance(df_open_et, precip_data, LAT, LON):
+def water_balance(df_water_balance, LAT, LON):
     print(f'{LAT} {LON}')
-    
-    # Create dataframe
-    df_water_balance = df_open_et
-    df_water_balance['precip'] = precip_data
 
     # Handle NAs
     df_water_balance['et'] = df_water_balance['et'].fillna(0)
@@ -68,9 +64,10 @@ def water_balance(df_open_et, precip_data, LAT, LON):
 
     return df_water_balance
 
+
 # %% Time Series
 
-def timeseries_graphs(df_water_balance, LAT, LON, YEAR):
+def timeseries_graphs_API(df_water_balance, LAT, LON, YEAR):
     
     # Slicing warning if not copied
     df_water_balance = df_water_balance.copy()
@@ -99,6 +96,39 @@ def timeseries_graphs(df_water_balance, LAT, LON, YEAR):
     
     # Save plot
     filename = f'/projectnb/dietzelab/ccmmf/management/irrigation/TimeseriesPNG/CCMMR_et_precip_irr_cumsum_{YEAR}_{LAT}_{LON}.png'
+    plt.savefig(filename)
+    
+    plt.show()
+    
+def timeseries_graphs_GEE(df_water_balance, LAT, LON, YEAR):
+    
+    # Slicing warning if not copied
+    df_water_balance = df_water_balance.copy()
+
+    # Create cumulative sum columns
+    df_water_balance['et_cumsum'] = df_water_balance['et'].cumsum()
+    df_water_balance['precip_cumsum'] = df_water_balance['precip'].cumsum()
+    df_water_balance['irr_cumsum'] = df_water_balance['irr'].cumsum()
+    
+    # Ensure time is dates
+    df_water_balance['time'] = pd.to_datetime(df_water_balance['time'])
+    
+    # Plot time series
+    plt.figure(figsize=(10, 5))
+    plt.plot(df_water_balance['time'], df_water_balance['et_cumsum'], linestyle = 'dotted', lw = 2.5, label = 'Evapotranspiration')
+    plt.plot(df_water_balance['time'], df_water_balance['precip_cumsum'], linestyle = 'dashed', lw = 2.5, label = 'Precipitation')
+    plt.plot(df_water_balance['time'], df_water_balance['irr_cumsum'], linestyle = 'dashdot', lw = 2.5, label = 'Irrigation')
+    plt.plot(df_water_balance['time'], df_water_balance['runoff'], linestyle = 'solid', lw = 2.5, label = 'Runoff')
+    
+    plt.xlabel('Date')
+    plt.ylabel('Monthly Cumulative Sum of Evapotransipiration, \nPrecipitation, and Irrigation (mm)')
+    plt.suptitle('Evapotransipiration and Precipitation Time Series in Central Valley CA')
+    plt.title(f'(Lat: {LAT}, Lon: {LON})')
+    plt.legend()
+    plt.grid()
+    
+    # Save plot
+    filename = f'/projectnb/dietzelab/ccmmf/management/irrigation/TimeseriesPNG_GEE/CCMMR_GEE_cumsum_{YEAR}_{LAT}_{LON}.png'
     plt.savefig(filename)
     
     plt.show()

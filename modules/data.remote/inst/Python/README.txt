@@ -6,6 +6,7 @@ in California.
 Data Sources:
 - Evapotranspiration: OpenET
     - https://openet.gitbook.io/docs
+    - https://developers.google.com/earth-engine/datasets/catalog/OpenET_ENSEMBLE_CONUS_GRIDMET_MONTHLY_v2_0
 - Precipitation: CHIRPS
     - https://data.chc.ucsb.edu/products/CHIRPS-2.0/
     
@@ -21,7 +22,8 @@ How to use SCC:
     - Create or Load environment
         - Load: conda activate ccmmf_env
         - Create (all on one line): conda create -n ccmmf_env python jupyter 
-        spyder xarray requests numpy netcdf4 matplotlib pandas pyarrow earthengine-api
+        spyder xarray requests numpy netcdf4 matplotlib pandas pyarrow earthengine-api 
+        scikit-learn seaborn
     - To open spyder: spyder &
         - This may take a second to run. Be patient it will open eventually.
 
@@ -136,11 +138,6 @@ Functions (by files):
     expected columns for the txt file. It also aggregates this data by week.
 
 Next Steps:
-- Get the Google Earth Engine download working
-- Create a CCMMF_Irrigation_GEE file
-    - Does the same thing as CCMMF_Irrigation_API except uses GEEOpenET and the
-    monthly et values are then assumed to be the same for each day of the month.
-- Compare monthly and daily et values
 - Site specific water holding capacity and crop specific rooting depth
 
     
