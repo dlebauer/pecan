@@ -377,7 +377,7 @@ sda.enkf.multisite <- function(settings,
     }
     input_tag<-names(samp.ordered)[i]
     #call the function responsible for generating the ensemble for the random site
-    inputs[[random_site]][[input_tag]] <- input.ens.gen(settings=conf.settings[[random_site]],
+    inputs[[random_site]][[input_tag]] <- PEcAn.uncertainty::input.ens.gen(settings=conf.settings[[random_site]],
                                                         input=input_tag,
                                                         method=samp.ordered[[i]]$method,
                                                         parent_ids=NULL)
