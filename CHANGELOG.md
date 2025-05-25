@@ -18,6 +18,7 @@ For more information about this file see also [Keep a Changelog](http://keepacha
   - You can compile all pkgdown pages locally at any time with `make pkgdocs`.
 
 ### Fixed
+- api to correctly use x_var from request in plotResults #3528
 - rstudio username is now set using DEFAULT_USER
 - ed2 did not compile with newer rocker images
 - api did not compile with newer rocker images
