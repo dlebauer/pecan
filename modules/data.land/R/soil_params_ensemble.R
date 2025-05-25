@@ -192,7 +192,7 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
       # Generate the ensemble soil texture data based on the ensemble size (ens_n) defined in the settings
       samples <- MCMCpack::rdirichlet(ens_n, alpha_est)
       colnames(samples) <-c("fraction_of_sand_in_soil","fraction_of_clay_in_soil","fraction_of_silt_in_soil")
-      samples <-list(samples) %>% setNames(depths)
+      samples <-list(samples) %>% stats::setNames(depths)
       samples_ens <- append(samples_ens, samples)
     }
     # Generate soil parameter file for each one in ensemble soil texture data
@@ -234,7 +234,7 @@ reformat_soil_list <- function(samples_all_depth) {
       "fraction_of_silt_in_soil")
   
   # Initialize a new list to store reformatted data
-  reformatted <-setNames(vector("list", length(fractions)), fractions)
+  reformatted <- stats::setNames(vector("list", length(fractions)), fractions)
   
   # Extract data for each fraction
   for (fraction in fractions) {
