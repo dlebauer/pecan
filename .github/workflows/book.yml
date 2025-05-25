@@ -3,7 +3,7 @@ name: renderbook
 on:
   push:
     branches:
-      - master
+      - main
       - develop
     tags:
       - '*'
@@ -18,7 +18,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     container: 
-      image: pecan/depends:R4.1
+      image: pecan/depends:develop
 
     steps:
     # checkout source code
@@ -46,13 +46,22 @@ jobs:
         cd book_source
         Rscript -e 'options(bookdown.render.file_scope=FALSE); bookdown::render_book("index.Rmd", "bookdown::gitbook")'
     # save artifact
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: pecan-documentation
         path: book_source/_book/
+    # check if documentation repo exists
+    - name: Check if documentation repo exists
+      id: doc_exists
+      run: |
+        if git ls-remote https://github.com/${{ github.repository_owner }}/pecan-documentation.git > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
     # download documentation repo
     - name: Checkout documentation repo
-      if: github.event_name == 'push'
+      if: ${{ github.event_name == 'push' && steps.doc_exists.outputs.exists == 'true' }}
       uses: actions/checkout@v4
       with:
         repository: ${{ github.repository_owner }}/pecan-documentation
@@ -65,9 +74,12 @@ jobs:
         git config --global user.email "pecanproj@gmail.com"
         git config --global user.name "GitHub Documentation Robot"
         export VERSION=$(echo $GITHUB_REF | sed 's,.*/,,' )
+        if [ "$VERSION" = "main" ]; then
+          export VERSION=latest
+        fi
         cd pecan-documentation
         mkdir -p $VERSION
         rsync -a --delete ../book_source/_book/ ${VERSION}/
         git add --all *
         git commit -m "Build book from pecan revision ${GITHUB_SHA}" || true
-        git push -q origin master
+        git push -q origin main

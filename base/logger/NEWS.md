@@ -1,3 +1,7 @@
+# PEcAn.logger 1.8.3
+
+- Maintenance release with no user-visible changes.
+
 # PEcAn.logger 1.8.2
 
 - `PEcAn.logger::setLevel()` now invisibly returns the previously set logger level

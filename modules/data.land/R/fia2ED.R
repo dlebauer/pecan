@@ -7,13 +7,19 @@
 # http://opensource.ncsa.illinois.edu/license.html
 #-------------------------------------------------------------------------------
 
-##' convert x into a table
-##'
-##' @title fia.to.psscss
-##' @param create pss/css files based on data in the fia database
-##' @return nothing
-##' @export
-##' @author Mike Dietze, Rob Kooper, Ryan Kelly
+#' Create pss/css files based on data in the fia database
+#'
+#' @param settings PEcAn settings object
+#' @param lat,lon site location in decimal degrees.
+#'  Defults to values passed in `settings`.
+#' @param year defaults to year of start date passed in settings
+#' @param gridres grid resolution in degrees
+#' @param min.year,max.year limits on years of FIA data to look for
+#' @param overwrite logical: regenerate files already in the database?
+#'
+#' @return modified settings, invisibly
+#' @export
+#' @author Mike Dietze, Rob Kooper, Ryan Kelly
 fia.to.psscss <- function(settings, 
                           lat = as.numeric(settings$run$site$lat),
                           lon = as.numeric(settings$run$site$lon),
@@ -303,8 +309,15 @@ fia.to.psscss <- function(settings,
   
   # ----- Write files 
   # Write files locally
-  site.string <- paste0(as.numeric(settings$run$site$id)%/%1e+09, "-", 
-                        as.numeric(settings$run$site$id)%%1e+09)
+  siteid <- tryCatch(
+    as.numeric(settings$run$site$id),
+    warning = function(w)as.character(settings$run$site$id)
+  )
+  if (is.numeric(siteid) && siteid > 1e9) {
+    site.string <- paste0(siteid %/% 1e+09, "-", siteid %% 1e+09)
+  } else {
+    site.string <- siteid
+  }
   if (settings$host$name == "localhost") {
     out.dir.local <- file.path(settings$database$dbfiles, paste0("FIA_ED2_site_", site.string))
   } else {

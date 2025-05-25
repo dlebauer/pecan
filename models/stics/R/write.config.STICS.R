@@ -1,13 +1,3 @@
-#-------------------------------------------------------------------------------
-# Copyright (c) 2012 University of Illinois, NCSA.
-# All rights reserved. This program and the accompanying materials
-# are made available under the terms of the 
-# University of Illinois/NCSA Open Source License
-# which accompanies this distribution, and is available at
-# http://opensource.ncsa.illinois.edu/license.html
-#-------------------------------------------------------------------------------
-
-##-------------------------------------------------------------------------------------------------#
 ##' Writes STICS configurations.
 ##'
 ##' Requires a pft xml object, a list of trait values for a single model run,
@@ -1272,8 +1262,18 @@ write.config.STICS <- function(defaults, trait.values, settings, run.id) {
   # check param names
   # sols_vals  <- SticsRFiles::get_soil_txt(sols_file)
   
-  str_ns <- paste0(as.numeric(settings$run$site$id) %/% 1e+09, "-", as.numeric(settings$run$site$id) %% 1e+09)
-  
+  site_id <- tryCatch(
+    as.numeric(settings$run$site$id),
+    warning = function(w) as.character(settings$run$site$id)
+  )
+  if (is.numeric(site_id) && site_id > 1e9) {
+    # assume this is a BETYdb id, condense for readability
+    str_ns <- paste0(site_id %/% 1e9, "-", site_id %% 1e9)
+  } else {
+    #treat as string, leave as-is
+    str_ns <- site_id
+  }
+
   # I guess not important what this is called as long as it's consistent in usms
   SticsRFiles::set_soil_txt(file = sols_file, param="typsol", value=paste0("sol", str_ns))
   

@@ -1,7 +1,7 @@
 Package: PEcAn.data.atmosphere
 Type: Package
 Title: PEcAn Functions Used for Managing Climate Driver Data
-Version: 1.8.0
+Version: 1.9.0
 Authors@R: c(person("Mike", "Dietze", role = c("aut"),
                      email = "dietze@bu.edu"),
              person("David", "LeBauer", role = c("aut", "cre"),
@@ -55,6 +55,7 @@ Imports:
     tidyselect,
     truncnorm,
     units,
+    utils,
     XML (>= 3.98-1.4),
     xts,
     zoo
@@ -63,11 +64,15 @@ Suggests:
     foreach,
     furrr,
     future,
+    getPass,
+    knitr,
+    mockery,
     parallel,
     PEcAn.settings,
     progress,
     reticulate,
-    testthat (>= 2.0.0),
+    rmarkdown,
+    testthat (>= 3.1.7),
     withr
 Remotes:
     github::adokter/suntools,
@@ -78,5 +83,6 @@ License: BSD_3_clause + file LICENSE
 Copyright: Authors
 LazyLoad: yes
 LazyData: FALSE
+VignetteBuilder: knitr, rmarkdown
 Encoding: UTF-8
 RoxygenNote: 7.3.2

@@ -4,6 +4,8 @@
 #' @param input     PEcAn input list
 #' @param dbfiles   directory to write database files
 #' @param overwrite overwrite previous results (boolean)
+#' @param run.local logical: Run only on the current machine?
+#'  If FALSE, runs on `settings$host` (which might turn out to be the current machine)
 #'
 #' @return path to soil file
 #' @export
@@ -34,7 +36,12 @@ soil_process <- function(settings, input, dbfiles, overwrite = FALSE,run.local=T
                          lat = latlon$lat,
                          lon = latlon$lon)
 
-  str_ns <- paste0(new.site$id %/% 1e+09, "-", new.site$id %% 1e+09)
+  if (isTRUE(new.site$id > 1e9)) {
+    # Assume this is a BETYdb id, condense for readability
+    str_ns <- paste0(new.site$id %/% 1e+09, "-", new.site$id %% 1e+09)
+  } else {
+    str_ns <- as.character(site$id)
+  }
 
   outfolder <- file.path(dbfiles, paste0(input$source, "_site_", str_ns))
 
@@ -94,8 +101,11 @@ soil_process <- function(settings, input, dbfiles, overwrite = FALSE,run.local=T
   }  ## otherwise continue to process soil
 
     # set up host information
-  machine.host <- ifelse(host == "localhost" || host$name == "localhost" || run.local,
-                         PEcAn.remote::fqdn(), host$name)
+  if (host$name == "localhost" || run.local) {
+    machine.host <- PEcAn.remote::fqdn()
+  } else {
+    machine.host <- host$name
+  }
   machine <- PEcAn.DB::db.query(paste0("SELECT * from machines where hostname = '", machine.host, "'"), con)
 
   # retrieve model type info

@@ -1,3 +1,9 @@
+# PEcAn.ED2 1.8.1
+
+* Fixed vignette compilation
+* Docker build fixes
+
+
 # PEcAn.ED2 1.8.0
 
 * Warning messages for `model2netcdf.ed2()` coming from `ncdf4::ncvar_put()` now are prepended with the variable name for easier debugging (#3078)

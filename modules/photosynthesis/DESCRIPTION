@@ -1,7 +1,7 @@
 Package: PEcAn.photosynthesis
 Type: Package
 Title: PEcAn functions used for leaf-level photosynthesis calculations
-Version: 1.7.3
+Version: 1.7.4
 Authors@R: c(person("Mike", "Dietze", role = c("aut", "cre"),
                      email = "dietze@bu.edu"),
              person("Xiaohui", "Feng", role = c("aut"),
@@ -34,10 +34,6 @@ License: BSD_3_clause + file LICENSE
 Copyright: Authors
 LazyLoad: yes
 LazyData: FALSE
-Collate:
-    fitA.R
-    Licor.QC.R
-    plots.R
 Encoding: UTF-8
 RoxygenNote: 7.3.2
-VignetteBuilder: knitr
+VignetteBuilder: knitr, rmarkdown

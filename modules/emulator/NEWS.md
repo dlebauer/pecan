@@ -1,3 +1,9 @@
+# PEcAn.emulator 1.8.1
+
+## License change
+* PEcAn.emulator is now distributed under the BSD three-clause license instead of the NCSA Open Source license.
+
+
 # PEcAn.emulator 1.8.0
 
 ## Removed
@@ -5,6 +11,7 @@
 
 ## Added
 * Function `plot.mvjump`, moved from PEcAn.assim.batch.
+
 
 # PEcAn.emulator 1.7.1
 

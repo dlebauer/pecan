@@ -76,14 +76,29 @@ do_conversions <- function(settings, overwrite.met = FALSE, overwrite.fia = FALS
 
     # Phenology data extraction
     if(input.tag == "leaf_phenology" && is.null(input$path)){
-      #settings$run$inputs[[i]]$path <- PEcAn.data.remote::extract_phenology_MODIS(site_info,start_date,end_date,outdir,run_parallel = TRUE,ncores = NULL)
+      # Use settings$run$site if available, otherwise query site
+      site <- if(!is.null(settings$run$site$lat) && !is.null(settings$run$site$lon)) {
+        settings$run$site
+      } else {
+        PEcAn.DB::query.site(site.id = settings$run$site$site.id, con = NULL)
+      }
+      
+      settings$run$inputs[[i]]$path <- 
+        PEcAn.data.remote::extract_phenology_MODIS(
+          site_info = site,
+          start_date = settings$run$start.date,
+          end_date = settings$run$end.date,
+          outdir= dbfiles,
+          run_parallel = TRUE,
+          ncores = NULL
+        )
       needsave <- TRUE
     }
 
     # met conversion
     
     if (input.tag == "met") {
-      name <- ifelse(is.null(settings$browndog), "MET Process", "BrownDog")
+      name <- "MET Process"
       if ( (PEcAn.utils::status.check(name) == 0)) { ## previously is.null(input$path) && 
         PEcAn.logger::logger.info("calling met.process: ",settings$run$inputs[[i]][['path']])
         settings$run$inputs[[i]] <- 
@@ -96,7 +111,6 @@ do_conversions <- function(settings, overwrite.met = FALSE, overwrite.fia = FALS
             host       = settings$host,
             dbparms    = settings$database$bety, 
             dir        = dbfiles,
-            browndog   = settings$browndog,
             spin       = settings$spin,
             overwrite  = overwrite.met)
         PEcAn.logger::logger.debug("updated met path: ",settings$run$inputs[[i]][['path']])

@@ -73,6 +73,7 @@ services:
   # ----------------------------------------------------------------------
   bety:
     image: pecan/bety:${BETY_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -81,6 +82,8 @@ services:
       - SECRET_KEY_BASE=${BETY_SECRET_KEY:-notasecret}
       - RAILS_RELATIVE_URL_ROOT=/bety
       - LOCAL_SERVER=${BETY_LOCAL_SERVER:-99}
+    volumes:
+      - bety:/home/bety/log
     depends_on:
       - postgres
     labels:
@@ -95,6 +98,7 @@ services:
   # PEcAn documentation as well as PEcAn home page
   docs:
     image: pecan/docs:${PECAN_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -150,6 +154,7 @@ services:
   executor:
     user: "${UID:-1001}:${GID:-1001}"
     image: pecan/executor:${PECAN_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -171,7 +176,8 @@ services:
   # PEcAn basgra model runner
   basgra:
     user: "${UID:-1001}:${GID:-1001}"
-    image: pecan/model-basgra-basgra_n_v1.0:${PECAN_VERSION:-latest}
+    image: pecan/model-basgra-basgra_n_v1:${PECAN_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -186,6 +192,7 @@ services:
   sipnet:
     user: "${UID:-1001}:${GID:-1001}"
     image: pecan/model-sipnet-git:${PECAN_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -201,6 +208,7 @@ services:
     user: "${UID:-1001}:${GID:-1001}"
     image: pecan/model-ed2-2.2.0:${PECAN_VERSION:-latest}
     restart: unless-stopped
+    platform: linux/amd64
     networks:
       - pecan
     environment:
@@ -214,6 +222,7 @@ services:
   maespa:
     user: "${UID:-1001}:${GID:-1001}"
     image: pecan/model-maespa-git:${PECAN_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       - pecan
@@ -279,6 +288,7 @@ networks:
 volumes:
   traefik:
   postgres:
+  bety:
   rabbitmq:
   pecan:
   rstudio:

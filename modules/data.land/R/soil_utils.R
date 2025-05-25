@@ -232,10 +232,10 @@ soil_params <- function(soil_type=NULL, sand=NULL, silt=NULL, clay=NULL, bulk=NU
   mysoil$soil_thermal_capacity <- mysoil$slcpd / mysoil$soil_bulk_density   ## J/m3/K / [kg m-3] -> J/kg/K
   
   ## drop variables that are only meaningful internally
-  #mysoil$slpotcp <- NULL
-  #mysoil$slpotwp <- NULL
-  #mysoil$slden <- NULL ## not clear how this is is different from bulk density in the look-up-table
-  #mysoil$slcpd <- NULL
+  mysoil$slpotcp <- NULL
+  mysoil$slpotwp <- NULL
+  mysoil$slden <- NULL ## not clear how this is is different from bulk density in the look-up-table
+  mysoil$slcpd <- NULL
   
   return(mysoil)
 }#end function
@@ -249,8 +249,8 @@ soil_params <- function(soil_type=NULL, sand=NULL, silt=NULL, clay=NULL, bulk=NU
 
 #' This function determines the soil class number based on the fraction of sand, clay, and silt
 #'
-#' @param sandfrac 
-#' @param clayfrac 
+#' @param sandfrac,clayfrac numeric vectors with values in range 0 to 1.
+#'  Silt fraction is assumed to be the difference between (sand+clay) and 1
 #'
 #' @return vector of integers identifying textural class of each input layer.
 #'  Possible values are 1 through 17; NB these are NOT the same class
@@ -264,7 +264,9 @@ sclass <- function(sandfrac,clayfrac){
   #----- Define the percentage of sand, clay, and silt. ----------------------------------#
   sand <- 100. * sandfrac
   clay <- 100. * clayfrac
-  silt <- 100. - sand - clay
+  # Prevent silt from being negative due to numerical precision issue
+  silt <- pmax(100. - sand - clay, 0)
+  
   #---------------------------------------------------------------------------------------#
   
   #---------------------------------------------------------------------------------------#
@@ -327,8 +329,10 @@ sclass <- function(sandfrac,clayfrac){
 
 #' Convert a matric potential to a soil moisture
 #'
-#' @param mpot   water potential
-#' @param mysoil soil property list
+#' @param mpot water potential (cm H2O)
+#' @param soil_water_potential_at_saturation water potential when soil is saturated (cm H2O)
+#' @param soil_hydraulic_b pore-size distribution parameter for Campbell (1974) water content model
+#' @param volume_fraction_of_water_in_soil_at_saturation VSWC when soil is saturated (numeric in range 0-1)
 #'
 #' @return volumetric soil water content
 #' @export

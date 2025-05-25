@@ -12,9 +12,10 @@ NASA_DAAC_download(
   ncore = 1,
   from,
   to,
-  outdir,
+  outdir = getwd(),
+  band = NULL,
+  credential.folder = NULL,
   doi,
-  netrc_file = NULL,
   just_path = FALSE
 )
 }
@@ -36,17 +37,21 @@ NASA_DAAC_download(
 "yyyy-mm-dd".}
 
 \item{outdir}{Character: path of the directory in which to save the
-downloaded files.Default to the working directory. If it doesn't exist it
-will be created. Ignored if \code{just_path=TRUE}}
+downloaded files. Default is the current work directory(getwd()).}
 
-\item{doi}{Character: data DOI on the NASA DAAC server, it can be obtained directly from the NASA ORNL DAAC data portal (e.g., GEDI L4A through https://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=2056).}
+\item{band}{Character: the band name of data to be requested.}
 
-\item{netrc_file}{Character: path to the credential file, default is NULL.}
+\item{credential.folder}{Character: physical path to the folder that contains 
+the credential file. The default is NULL.}
+
+\item{doi}{Character: data DOI on the NASA DAAC server, it can be obtained 
+directly from the NASA ORNL DAAC data portal (e.g., GEDI L4A through 
+https://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=2056).}
 
 \item{just_path}{Boolean: if we just want the metadata and URL or proceed the actual download.}
 }
 \value{
-A list containing meta data for each data downloaded.
+Physical paths of downloaded files (just_path = T) or URLs of the files (just_path = F).
 }
 \description{
 Parallel download data from the NASA ORNL DAAC server given period, spatial bounding box, and data DOI.
@@ -60,14 +65,15 @@ lr_lon <- -117
 from <- "2022-02-23"
 to <- "2022-05-30"
 doi <- "10.3334/ORNLDAAC/2183"
-metadata <- NASA_DAAC_download(ul_lat = ul_lat, 
-                               ul_lon = ul_lon, 
-                               lr_lat = lr_lat, 
-                               lr_lon = lr_lon, 
-                               from = from, 
-                               to = to, 
-                               doi = doi,
-                               just_path = T)
+outdir <- "/projectnb/dietzelab/dongchen/SHIFT/test_download"
+paths <- NASA_DAAC_download(ul_lat = ul_lat, 
+                            ul_lon = ul_lon, 
+                            lr_lat = lr_lat, 
+                            lr_lon = lr_lon, 
+                            from = from, 
+                            to = to, 
+                            doi = doi,
+                            just_path = T)
 }
 }
 \author{
