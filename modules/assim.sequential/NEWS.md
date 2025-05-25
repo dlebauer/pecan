@@ -5,7 +5,7 @@
 * `tobit_model_censored`, technically not new but newly exported after being refactored out from inside the existing SDA analysis code.
 * `aggregate` for spatiol aggregation of model downscaling outputs
 
-# Changed
+## Changed
 
 * `NA_downscale` renamed `SDA_downscale_hrly`
 * Documentation improvements
