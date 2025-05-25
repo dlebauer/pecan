@@ -66,32 +66,33 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 
 
 
-##' A function to estimate the soil parameters based on SoilGrids soil texture data and write the parameter paths into settings
-##' 
-##' @param settings A multi-site settings
-##' @param sand A data frame containing sand fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"
-##' @param clay A data frame containing clay fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"
-##' @param silt A data frame containing silt fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"
-##' @param outdir Provide the path to store the parameter files
-##' @param write_into_settings Whether to write the path of parameter file into the setting. The default is TRUE
-##' 
-##' @examples
-##' \dontrun{
-##' 
-##' outdir <- "/projectnb/dietzelab/Cherry/SoilGrids_texture/39NEON"
-##' sand <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/sand_percent.rds") #sand fraction in percentage
-##' clay <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/clay_percent.rds") #clay fraction in percentage
-##' silt <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/silt_percent.rds") #silt fraction in percentage
-##' settings <-read.settings("/projectnb/dietzelab/Cherry/xml/pecan_monthly_SDA_soilwater.xml")
-##' soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
-##'  }
-##'  
-##'  @return Ensemble soil parameter files defined in outdir and file paths in xml file
-##'  @export 
-##'  @author Qianyu Li
-##'  @importFrom magrittr %>%
-##'  @importFrom rlang .data
-##'  
+#' A function to estimate the soil parameters based on SoilGrids soil texture
+#'  data and write the parameter paths into settings
+#'
+#' @param settings A multi-site settings
+#' @param sand,clay,silt Data frames containing fraction in percentage from SoilGrids250m
+#'  v2.0, each with columns "Depth", "Quantile", "Siteid", and "Value"
+#' @param outdir Provide the path to store the parameter files
+#' @param write_into_settings Whether to write the path of parameter file into
+#'  the setting. The default is TRUE
+#'
+#' @examples
+#' \dontrun{
+#'
+#' outdir <- "/projectnb/dietzelab/Cherry/SoilGrids_texture/39NEON"
+#' # each file contains percent salt, silt, or clay
+#' sand <- readRDS("/path/to/SoilGrids_texture/sand_percent.rds")
+#' clay <- readRDS("/path/to/SoilGrids_texture/clay_percent.rds")
+#' silt <- readRDS("/path/to/SoilGrids_texture/silt_percent.rds")
+#' settings <-read.settings("/path/to/pecan_monthly_SDA_soilwater.xml")
+#' soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
+#' }
+#'
+#' @return Ensemble soil parameter files defined in outdir and file paths in xml file
+#' @export
+#' @author Qianyu Li
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
 
 soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_into_settings=TRUE){
   
