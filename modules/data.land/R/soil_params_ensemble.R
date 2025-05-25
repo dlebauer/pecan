@@ -1,23 +1,27 @@
-##' A function to estimate individual alphas for Dirichlet distribution to approximate the observed quantiles with means as known moments
-##' for SoilGrids soil texture data. 
-##' Dirichlet distribution is assumed as soil texture data follow categorical distribution and the probability of each category is in the range 0 to 1, 
-##' and all must sum to 1.
-##'  
-##' @param means A vector of means of sand, clay, and silt proportion for one soil layer at one site from SoilGrids data
-##' @param quantiles A list of 5th, 50th, and 95th percentiles for sand, clay, and silt for one soil layer at one site from SoilGrids data
-##'
-##' @example
-##' \dontrun{
-##' means <- c(0.566,0.193,0.241) # means of sand, clay, and silt at one site and one depth
-##' quantiles <-list(
-##' q5 = c(0.127,0.034,0.052), # 5th percentile for each category: sand, clay, and silt at one site and one depth
-##' q50 = c(0.615,0.15,0.191), # 50th percentile (median) for each category: sand, clay, and silt at one site and one depth
-##' q95 = c(0.799,0.66,0.616))  # 95th percentile for each category: sand, clay, and silt at one site and one depth
-##' alpha_est <- estimate_dirichlet_parameters(means, quantiles)
-##' }
-##'  @return The individual alphas that work best to fit the observed quantiles
-##'  @export 
-##'  @author Qianyu Li
+#' A function to estimate individual alphas for Dirichlet distribution to
+#' approximate the observed quantiles with means as known moments for SoilGrids
+#' soil texture data.
+#' Dirichlet distribution is assumed as soil texture data follow categorical
+#' distribution and the probability of each category is in the range 0 to 1,
+#' and all must sum to 1.
+#'
+#' @param means A vector of means of sand, clay, and silt proportion for one
+#'  soil layer at one site from SoilGrids data
+#' @param quantiles A list of 5th, 50th, and 95th percentiles for sand, clay,
+#'  and silt for one soil layer at one site from SoilGrids data
+#'
+#' @examples
+#' \dontrun{
+#' # Means and percentiles for each category: sand, clay, and silt at one site and one depth
+#' means <- c(0.566,0.193,0.241)
+#' quantiles <-list(
+#' q5 = c(0.127,0.034,0.052), # 5th percentile
+#' q50 = c(0.615,0.15,0.191), # 50th percentile (median)
+#' q95 = c(0.799,0.66,0.616))  # 95th percentile
+#' alpha_est <- estimate_dirichlet_parameters(means, quantiles)
+#' }
+#' @return The individual alphas that work best to fit the observed quantiles
+#' @author Qianyu Li
 estimate_dirichlet_parameters <- function(means, quantiles) {
   
   # A function to optimize alpha0, which is the sum of individual alphas.
@@ -31,13 +35,19 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
       # Generate samples based on estimated alpha
       samples <- MCMCpack::rdirichlet(10000, alpha) # Generate samples
       # Compute differences with observed quantiles
-      estimated_quantiles <- apply(samples, 2, quantile, probs = c(0.05, 0.5, 0.95),na.rm = TRUE)
+      estimated_quantiles <- apply(
+        x = samples,
+        margin = 2,
+        FUN = stats::quantile,
+        probs = c(0.05, 0.5, 0.95),
+        na.rm = TRUE
+      )
       quantile_diff <- sum((estimated_quantiles - do.call(rbind, quantiles))^2)
       return(quantile_diff)
     }
     
     # Optimize alpha0
-    result <- optim(
+    result <- stats::optim(
       par = 1, # Initial guess for alpha0
       fn = objective_function,
       method = "L-BFGS-B",
@@ -65,7 +75,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 ##' @param outdir Provide the path to store the parameter files
 ##' @param write_into_settings Whether to write the path of parameter file into the setting. The default is TRUE
 ##' 
-##' @example
+##' @examples
 ##' \dontrun{
 ##' 
 ##' outdir <- "/projectnb/dietzelab/Cherry/SoilGrids_texture/39NEON"
@@ -154,21 +164,21 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
     # Estimate Dirichlet parameters for each depth at each site
     for (depths in sort(unique(texture_all$soil_depth))) {
       quantiles <- list(
-        q5 = dplyr::filter(dat[[i]], quantile == "0.05", soil_depth == depths) %>% dplyr::select(
+        q5 = dplyr::filter(dat[[i]], .data$quantile == "0.05", soil_depth == depths) %>% dplyr::select(
           fraction_of_sand_in_soil,
           fraction_of_clay_in_soil,
           fraction_of_silt_in_soil), # 5th percentile for each category
-        q50 = dplyr::filter(dat[[i]], quantile == "0.5", soil_depth == depths) %>% dplyr::select(
+        q50 = dplyr::filter(dat[[i]], .data$quantile == "0.5", soil_depth == depths) %>% dplyr::select(
           fraction_of_sand_in_soil,
           fraction_of_clay_in_soil,
           fraction_of_silt_in_soil), # 50th percentile (median) for each category
-        q95 = dplyr::filter(dat[[i]], quantile == "0.95", soil_depth == depths) %>% dplyr::select(
+        q95 = dplyr::filter(dat[[i]], .data$quantile == "0.95", soil_depth == depths) %>% dplyr::select(
           fraction_of_sand_in_soil,
           fraction_of_clay_in_soil,
           fraction_of_silt_in_soil))  # 95th percentile for each category
       
       # Extract the means
-      means <- dplyr::filter(dat[[i]], quantile == "Mean", soil_depth == depths) %>% dplyr::select(fraction_of_sand_in_soil,fraction_of_clay_in_soil,fraction_of_silt_in_soil)
+      means <- dplyr::filter(dat[[i]], .data$quantile == "Mean", soil_depth == depths) %>% dplyr::select(fraction_of_sand_in_soil,fraction_of_clay_in_soil,fraction_of_silt_in_soil)
       soil_rescaled <-rescale_sum_to_one(means$fraction_of_sand_in_soil,means$fraction_of_clay_in_soil,means$fraction_of_silt_in_soil)
       
       # Replace the original means with the rescaled ones

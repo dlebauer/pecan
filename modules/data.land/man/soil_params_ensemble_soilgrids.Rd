@@ -29,3 +29,20 @@ soil_params_ensemble_soilgrids(
 \description{
 A function to estimate the soil parameters based on SoilGrids soil texture data and write the parameter paths into settings
 }
+\examples{
+\dontrun{
+
+outdir <- "/projectnb/dietzelab/Cherry/SoilGrids_texture/39NEON"
+sand <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/sand_percent.rds") #sand fraction in percentage
+clay <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/clay_percent.rds") #clay fraction in percentage
+silt <- readRDS("/projectnb/dietzelab/Cherry/SoilGrids_texture/silt_percent.rds") #silt fraction in percentage
+settings <-read.settings("/projectnb/dietzelab/Cherry/xml/pecan_monthly_SDA_soilwater.xml")
+soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
+ }
+ 
+ @return Ensemble soil parameter files defined in outdir and file paths in xml file
+ @export 
+ @author Qianyu Li
+ @importFrom magrittr \%>\%
+ 
+}
