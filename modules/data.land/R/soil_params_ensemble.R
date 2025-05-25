@@ -93,6 +93,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 #' @author Qianyu Li
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
+#' @importFrom foreach %dopar%
 
 soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_into_settings=TRUE){
   
