@@ -44,5 +44,6 @@ soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
  @export 
  @author Qianyu Li
  @importFrom magrittr \%>\%
+ @importFrom rlang .data
  
 }

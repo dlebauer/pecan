@@ -15,9 +15,9 @@
 #' # Means and percentiles for each category: sand, clay, and silt at one site and one depth
 #' means <- c(0.566,0.193,0.241)
 #' quantiles <-list(
-#' q5 = c(0.127,0.034,0.052), # 5th percentile
-#' q50 = c(0.615,0.15,0.191), # 50th percentile (median)
-#' q95 = c(0.799,0.66,0.616))  # 95th percentile
+#'   q5 = c(0.127,0.034,0.052), # 5th percentile
+#'   q50 = c(0.615,0.15,0.191), # 50th percentile (median)
+#'   q95 = c(0.799,0.66,0.616))  # 95th percentile
 #' alpha_est <- estimate_dirichlet_parameters(means, quantiles)
 #' }
 #' @return The individual alphas that work best to fit the observed quantiles
@@ -90,6 +90,7 @@ estimate_dirichlet_parameters <- function(means, quantiles) {
 ##'  @export 
 ##'  @author Qianyu Li
 ##'  @importFrom magrittr %>%
+##'  @importFrom rlang .data
 ##'  
 
 soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_into_settings=TRUE){
@@ -164,21 +165,28 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
     # Estimate Dirichlet parameters for each depth at each site
     for (depths in sort(unique(texture_all$soil_depth))) {
       quantiles <- list(
-        q5 = dplyr::filter(dat[[i]], .data$quantile == "0.05", soil_depth == depths) %>% dplyr::select(
-          fraction_of_sand_in_soil,
-          fraction_of_clay_in_soil,
-          fraction_of_silt_in_soil), # 5th percentile for each category
-        q50 = dplyr::filter(dat[[i]], .data$quantile == "0.5", soil_depth == depths) %>% dplyr::select(
-          fraction_of_sand_in_soil,
-          fraction_of_clay_in_soil,
-          fraction_of_silt_in_soil), # 50th percentile (median) for each category
-        q95 = dplyr::filter(dat[[i]], .data$quantile == "0.95", soil_depth == depths) %>% dplyr::select(
-          fraction_of_sand_in_soil,
-          fraction_of_clay_in_soil,
-          fraction_of_silt_in_soil))  # 95th percentile for each category
+        q5 = dplyr::filter(dat[[i]], .data$quantile == "0.05", soil_depth == depths) %>%
+          dplyr::select(
+            "fraction_of_sand_in_soil",
+            "fraction_of_clay_in_soil",
+            "fraction_of_silt_in_soil"), # 5th percentile for each category
+        q50 = dplyr::filter(dat[[i]], .data$quantile == "0.5", soil_depth == depths) %>%
+          dplyr::select(
+            "fraction_of_sand_in_soil",
+            "fraction_of_clay_in_soil",
+            "fraction_of_silt_in_soil"), # 50th percentile (median) for each category
+        q95 = dplyr::filter(dat[[i]], .data$quantile == "0.95", soil_depth == depths) %>%
+          dplyr::select(
+            "fraction_of_sand_in_soil",
+            "fraction_of_clay_in_soil",
+            "fraction_of_silt_in_soil"))  # 95th percentile for each category
       
       # Extract the means
-      means <- dplyr::filter(dat[[i]], .data$quantile == "Mean", soil_depth == depths) %>% dplyr::select(fraction_of_sand_in_soil,fraction_of_clay_in_soil,fraction_of_silt_in_soil)
+      means <- dplyr::filter(dat[[i]], .data$quantile == "Mean", soil_depth == depths) %>%
+        dplyr::select(
+          "fraction_of_sand_in_soil",
+          "fraction_of_clay_in_soil",
+          "fraction_of_silt_in_soil")
       soil_rescaled <-rescale_sum_to_one(means$fraction_of_sand_in_soil,means$fraction_of_clay_in_soil,means$fraction_of_silt_in_soil)
       
       # Replace the original means with the rescaled ones
@@ -221,7 +229,7 @@ soil_params_ensemble_soilgrids <- function(settings,sand,clay,silt,outdir,write_
       settings[[ind]]$run$inputs$soil_physics$ensemble <- ens_n
       settings[[ind]]$run$inputs$soil_physics$path <-create_mult_list(rep("path", ens_n), PATH[[i]])
     }
-    write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
+    PEcAn.settings::write.settings(settings,outputdir = settings$outdir,outputfile = "pecan.xml")
   }
 }
 
