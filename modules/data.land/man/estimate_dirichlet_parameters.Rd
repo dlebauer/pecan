@@ -34,9 +34,9 @@ and all must sum to 1.
 # Means and percentiles for each category: sand, clay, and silt at one site and one depth
 means <- c(0.566,0.193,0.241)
 quantiles <-list(
-q5 = c(0.127,0.034,0.052), # 5th percentile
-q50 = c(0.615,0.15,0.191), # 50th percentile (median)
-q95 = c(0.799,0.66,0.616))  # 95th percentile
+  q5 = c(0.127,0.034,0.052), # 5th percentile
+  q50 = c(0.615,0.15,0.191), # 50th percentile (median)
+  q95 = c(0.799,0.66,0.616))  # 95th percentile
 alpha_est <- estimate_dirichlet_parameters(means, quantiles)
 }
 }
