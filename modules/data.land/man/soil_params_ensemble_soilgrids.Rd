@@ -2,7 +2,8 @@
 % Please edit documentation in R/soil_params_ensemble.R
 \name{soil_params_ensemble_soilgrids}
 \alias{soil_params_ensemble_soilgrids}
-\title{A function to estimate the soil parameters based on SoilGrids soil texture data and write the parameter paths into settings}
+\title{A function to estimate the soil parameters based on SoilGrids soil texture
+ data and write the parameter paths into settings}
 \usage{
 soil_params_ensemble_soilgrids(
   settings,
@@ -16,16 +17,34 @@ soil_params_ensemble_soilgrids(
 \arguments{
 \item{settings}{A multi-site settings}
 
-\item{sand}{A data frame containing sand fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"}
-
-\item{clay}{A data frame containing clay fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"}
-
-\item{silt}{A data frame containing silt fraction in percentage from SoilGrids250m v2.0 with columns "Depth", "Quantile", "Siteid", and "Value"}
+\item{sand, clay, silt}{Data frames containing fraction in percentage from SoilGrids250m
+v2.0, each with columns "Depth", "Quantile", "Siteid", and "Value"}
 
 \item{outdir}{Provide the path to store the parameter files}
 
-\item{write_into_settings}{Whether to write the path of parameter file into the setting. The default is TRUE}
+\item{write_into_settings}{Whether to write the path of parameter file into
+the setting. The default is TRUE}
+}
+\value{
+Ensemble soil parameter files defined in outdir and file paths in xml file
 }
 \description{
-A function to estimate the soil parameters based on SoilGrids soil texture data and write the parameter paths into settings
+A function to estimate the soil parameters based on SoilGrids soil texture
+ data and write the parameter paths into settings
+}
+\examples{
+\dontrun{
+
+outdir <- "/projectnb/dietzelab/Cherry/SoilGrids_texture/39NEON"
+# each file contains percent salt, silt, or clay
+sand <- readRDS("/path/to/SoilGrids_texture/sand_percent.rds")
+clay <- readRDS("/path/to/SoilGrids_texture/clay_percent.rds")
+silt <- readRDS("/path/to/SoilGrids_texture/silt_percent.rds")
+settings <-read.settings("/path/to/pecan_monthly_SDA_soilwater.xml")
+soil_params_ensemble_soilgrids(settings,sand,clay,silt,outdir)
+}
+
+}
+\author{
+Qianyu Li
 }
