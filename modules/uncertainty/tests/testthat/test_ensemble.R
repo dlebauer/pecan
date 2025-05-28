@@ -2,7 +2,6 @@ library(testthat)
 library(mockery)
 
 # Source the ensemble config function
-source("modules/uncertainty/R/ensemble.R")
 
 context("input validation for write.ensemble.configs")
 
