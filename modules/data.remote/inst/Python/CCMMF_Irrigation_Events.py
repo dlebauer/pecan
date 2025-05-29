@@ -49,6 +49,9 @@ def file_creation(data_dict):
         # Remove week column
         eventfile_df = eventfile_df.drop('week', axis = 1)
         
+        # Drop all 0 irrigation rows
+        eventfile_df = eventfile_df[eventfile_df['irr'] != 0]
+        
         # Write to file(s)
         folder_name = '/projectnb/dietzelab/ccmmf/management/irrigation/CCMMF_Irrigation_EventFiles/'
         filename = f'{folder_name}irrigation_eventfile_{key}.txt'

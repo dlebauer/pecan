@@ -65,20 +65,35 @@ Organization:
     dictionary of dataframes into txt files for each location in the dictionary.
     It both selects columns and sets constants for other columns. It also aggregates
     the data by week.
+    - CCMMF_Irrigation_GEE: This is the same as CCMMF_Irrigation_API except it
+    grabs the OpenET data from Google Earth Engine. It also does not create any
+    irrigation event files.
+    - CCMMF_Irrigation_GEEvAPI: This script is completely independent of all other
+    workflows. This reads in all saved data from both the Google Earth Enginge
+    downloads and the API downloads. It then creates graphs and summary statistics
+    to help us identify if we can use Google Earth Engine monthly data instead of
+    the daily data from the API.
 - Folders
     - WaterBalanceCSV: This is where all of the csv files for each location get
     saved. This is a back up way to save all of the data and also makes it easier
     to quickly view data per location. Each file is labeled with the corresponding
     lat and long coordinate. The folder name is defined in the "Define multi use 
     variables" section of CCMMF_Irrigation_API.
+    - WaterBalanceCSV_GEE: This is the same as the regular WaterBalanceCSV but
+    simply for the et data downloaded from Google Earth Engine.
     - TimeseriesPNG: This is where the timeseries graphs for each location and
     each year are saved. There is no variable name for this folder it is simply
     included in this string f'TimeseriesPNG/CCMMR_et_precip_irr_cumsum_{YEAR}_{LAT}_{LON}.png'
     in the timeseries_graphs function in CCMMF_Irrigation_CalcVis.
+    - TimeseriesPNG_GEE: This is the same as the regular TimeseriesPNG but simply
+    for the et data downloaded from Google Earth Engine. The format for the files
+    is 
     - CCMMF_Irrigation_Parquet: This folder is a directory for all of the parquet
     files. It is written in a way that Python and R can then tile the data by
     both location and year. This folder name is also defined in the "Define multi 
     use variables" section of CCMMF_Irrigation_API.
+    - CCMMF_Irrigation_Parquet_GEE: This is the same as the regular CCMMF_Irrigation_Parquet
+    but simply for the et data downloaded from Google Earth Engine.
     - CCMMF_Irrigation_EventFiles: This holds all of the event txt files for each
     location. The column names are in the header of CCMMF_Irrigation_Events. The
     naming format for the files is irrigation_eventfile_{location_id}.txt.
@@ -99,6 +114,9 @@ Organization:
     will be easiest.
     
 Workflow:
+This workflow is the same for both the OpenET API scripts and the Google Earth
+Engine Scripts.
+
 - Data is read in from parquet file
 - Calculate how old the data is (and how much new data needs to be read in)
     - If data is old, then delete the most recent CHIRPS file because we want
@@ -112,6 +130,7 @@ Workflow:
          downloaded to what we defined as the years we want to look at (This
          really only catches any years that are new at the front)
     - If no: download/organize for predefined year span
+- Write irrigation txt files for each location
 - Write the data that has been downloaded and organzied to the parquet file
 
 Functions (by files):
