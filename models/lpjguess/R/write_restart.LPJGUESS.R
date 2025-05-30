@@ -17,7 +17,6 @@
 ##' 
 ##' @return NONE
 ##'
-##' @importFrom dplyr %>%
 ##' @export
 ##' @author Yinghao Sun
 write_restart.LPJGUESS <- function(outdir, runid,
