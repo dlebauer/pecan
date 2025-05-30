@@ -10,13 +10,15 @@
 #' @return X_tmp      vector of forecasts
 #' @export
 #' @examples
-#' # example code
-#' outdir = "/fs/data2/output//PEcAn_1000010473/out"
-#' runid = 1002656839
-#' stop.time = "1960-12-31 23:59:59 UTC"
-#' load("/fs/data2/output/PEcAn_1000010473/SDAsettings_develop.Rdata")
-#' var.names = c("AGB.pft", "TotSoilCarb")
-#' load("/fs/data2/output/PEcAn_1000010473/SDAparams_develop.Rdata")
+#' \dontrun{
+#'   rx <- read_restart.LPJGUESS(
+#'            outdir   = "/projectnb/…/LPJ_output",
+#'            runid    = "123456",
+#'            stop.time = as.POSIXct("2001-12-31 23:59:59", tz = "UTC"),
+#'            settings = settings,
+#'            var.names = c("AGB.pft"),
+#'            params = params)
+#' }
 #' @author Istem Fer, Yinghao Sun
 read_restart.LPJGUESS <- function(outdir, runid, stop.time, settings, var.names, params){
   

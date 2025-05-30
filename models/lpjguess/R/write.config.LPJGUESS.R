@@ -205,7 +205,7 @@ write.insfile.LPJGUESS <- function(settings, trait.values, rundir, outdir, run.i
   # when using cru input, lpjguess will not use these clim files
   cru.file <- settings$run$inputs$met$path
   misc.file <- sub("\\.bin$", "misc.bin", cru.file)
-  guessins <- gsub("@SOIL_FILE@", cru.file, guessins)
+  guessins <- gsub("@MET_AND_SOIL_FILE@", cru.file, guessins)
   guessins <- gsub("@MISC_FILE@", misc.file, guessins)
   
   # create and write CO2 file
@@ -247,8 +247,7 @@ write.insfile.LPJGUESS <- function(settings, trait.values, rundir, outdir, run.i
   # version check
   if(!is.null(settings$model$revision)){
     if(settings$model$revision == "PalEON"){
-      #rm_inds <- which(grepl("@@@@@ Remove in PalEON version @@@@@", paramsins))
-      rm_inds <- which(grepl("##### Remove in PalEON version #####", paramsins))
+      rm_inds <- which(grepl("@@@@@ Remove in PalEON version @@@@@", paramsins))
       paramsins <- paramsins[-(rm_inds[1]:rm_inds[2])]
     }
   }

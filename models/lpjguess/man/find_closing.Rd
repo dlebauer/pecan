@@ -21,4 +21,3 @@ A numeric value indicating the line number of the matching closing bracket.
 \description{
 Identifies the line number of the matching closing bracket for a given opening bracket.
 }
-\keyword{internal}

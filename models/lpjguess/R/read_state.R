@@ -115,7 +115,6 @@ serialize_starts_ends <- function(file_in, pattern = "void Gridcell::serialize")
 #' @param if_else_check Optional. A logical value indicating whether to check for if/else blocks (default is FALSE).
 #' @export
 #' @return A numeric value indicating the line number of the matching closing bracket.
-#' @keywords internal
 # helper function that finds the closing bracket, can work over if-else
 find_closing <- function(find = "}", line_no, file_in, if_else_check = FALSE){
   opened <- 1
@@ -430,14 +429,6 @@ find_stream_type <- function(class = NULL, current_stream_var, LPJ_GUESS_CLASSES
   
   return(list(type = gsub(" ", "", stream_type), name = stream_name, substring = sub_string))
 } # find_stream_type
-
-#' Create a flat key from a nested path
-#'
-#' @param ... Parts of a nested list path (e.g., "Gridcell", "Stand", 1, "Patch", 2)
-#' @return A single string key like "Gridcell/Stand/1/Patch/2"
-#' @keywords internal
-make_key <- function(...) paste(..., sep = "/")
-
 
 # this fcn is for potential natural vegetation only
 # when there is landcover, there will be more stand types
@@ -765,7 +756,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                     number_of_individuals <- readBin(zz, integer(), 1, size = 4) 
                     Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Vegetation"]] <- list()
                     Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Vegetation"]][["number_of_individuals"]] <- number_of_individuals
-                    key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "number_of_individuals")
+                    key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "number_of_individuals", fsep = "/")
                     pos_list[[key]] <- pos
                     siz_list[[key]] <- 4
                     
@@ -790,7 +781,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                       # which PFT is this?
                       pos <- seek(zz)
                       Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Vegetation"]][["Individuals"]][[indv_i]][["indiv.pft.id"]] <- readBin(zz, integer(), 1, size = 4)
-                      key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, "indiv.pft.id")
+                      key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, "indiv.pft.id", fsep = "/")
                       pos_list[[key]] <- pos
                       siz_list[[key]] <- 4
                       
@@ -831,7 +822,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                                                            what = current_stream_specs$what, 
                                                                                                                                                                                            n    = current_stream_specs$n, 
                                                                                                                                                                                            size = current_stream_specs$size)
-                            key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, "PhotosynthesisResult", current_stream_type$name)
+                            key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, "PhotosynthesisResult", current_stream_type$name, fsep = "/")
                             pos_list[[key]] <- pos
                             siz_list[[key]] <- current_stream_specs$size
                             
@@ -849,7 +840,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                                  what = current_stream_specs$what, 
                                                                                                                                                                  n    = current_stream_specs$n, 
                                                                                                                                                                  size = current_stream_specs$size)
-                            key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, current_stream_type$name)
+                            key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, current_stream_type$name, fsep = "/")
                             pos_list[[key]] <- pos
                             siz_list[[key]] <- current_stream_specs$size 
                           }else{
@@ -859,7 +850,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                                            what = current_stream_specs$what[css.i], 
                                                                                                                                                                            n    = current_stream_specs$n[css.i], 
                                                                                                                                                                            size = current_stream_specs$size[css.i])
-                              key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, current_stream_specs$names[css.i])
+                              key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Vegetation", "Individuals", indv_i, current_stream_specs$names[css.i], fsep = "/")
                               pos_list[[key]] <- pos
                               siz_list[[key]] <- current_stream_specs$size[css.i] 
                             }
@@ -889,7 +880,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                     pos <- seek(zz)
                     key1 <- readBin(zz, "integer", 1, 8) 
                     Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Fluxes"]][["annual_fluxes_per_pft"]][["n_pft"]] <- key1
-                    key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", "n_pft")
+                    key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", "n_pft", fsep = "/")
                     pos_list[[key]] <- pos
                     siz_list[[key]] <- 8
                     
@@ -901,7 +892,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                         PEcAn.logger::logger.severe("Number of fluxes per pft read from the state file is too high. Check read.state function")
                       }
                       Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Fluxes"]][["annual_fluxes_per_pft"]][[paste0("pft", fpft_i)]][["key2"]] <- key2
-                      key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", paste0("pft", fpft_i), "key2")
+                      key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", paste0("pft", fpft_i), "key2", fsep = "/")
                       pos_list[[key]] <- pos
                       siz_list[[key]] <- 8
                       
@@ -909,7 +900,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                         # is this double?
                         pos <- seek(zz)
                         Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Fluxes"]][["annual_fluxes_per_pft"]][[paste0("pft", fpft_i)]][[PerPFTFluxType[flux_i]]] <- readBin(zz, "double", 1, 8)
-                        key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", paste0("pft", fpft_i), PerPFTFluxType[flux_i])
+                        key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "annual_fluxes_per_pft", paste0("pft", fpft_i), PerPFTFluxType[flux_i], fsep = "/")
                         pos_list[[key]] <- pos
                         siz_list[[key]] <- 8
                       }
@@ -921,7 +912,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                     n_monthly_fluxes_patch <- 12 * LPJ_GUESS_CONST_INTS$val[LPJ_GUESS_CONST_INTS$var =="PerPatchFluxType"]
                     pos <- seek(zz)
                     Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Fluxes"]][["monthly_fluxes_patch"]] <- readBin(zz, "double", n_monthly_fluxes_patch, 8)
-                    key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "monthly_fluxes_patch")
+                    key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "monthly_fluxes_patch", fsep = "/")
                     pos_list[[key]] <- pos
                     siz_list[[key]] <- 8
                     
@@ -931,7 +922,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                     n_monthly_fluxes_pft <- 12 * LPJ_GUESS_CONST_INTS$val[LPJ_GUESS_CONST_INTS$var =="PerPFTFluxType"]
                     pos <- seek(zz)
                     Gridcell[["Stand"]][[stnd_i]][["Patch"]][[ptch_i]][["Fluxes"]][["monthly_fluxes_pft"]] <- readBin(zz, "double", n_monthly_fluxes_pft, 8)
-                    key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "monthly_fluxes_pft")
+                    key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Fluxes", "monthly_fluxes_pft", fsep = "/")
                     pos_list[[key]] <- pos
                     siz_list[[key]] <- 8
                     
@@ -998,7 +989,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                           size = current_stream_specs$size)
                                 
 
-                                key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Soil", "Sompool", current_stream_type$name, som_i)
+                                key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, "Soil", "Sompool", current_stream_type$name, som_i, fsep = "/")
                                 pos_list[[key]] <- pos
                                 siz_list[[key]] <- current_stream_specs$size 
                                 
@@ -1017,7 +1008,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                                                               what = current_stream_specs$what, 
                                                                                                                                                                                               n    = current_stream_specs$n, 
                                                                                                                                                                                               size = current_stream_specs$size)
-                            key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, past_stream, current_stream_type$name, pft_i)
+                            key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, past_stream, current_stream_type$name, pft_i, fsep = "/")
                             pos_list[[key]] <- pos
                             siz_list[[key]] <- current_stream_specs$size 
                           }else{ # only for historic type?
@@ -1027,7 +1018,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                                                                                what = current_stream_specs$what[css.i], 
                                                                                                                                                                                                n    = current_stream_specs$n[css.i], 
                                                                                                                                                                                                size = current_stream_specs$size[css.i])
-                              key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, past_stream, current_stream_type$names[css.i], pft_i)
+                              key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, past_stream, current_stream_type$names[css.i], pft_i, fsep = "/")
                               pos_list[[key]] <- pos
                               siz_list[[key]] <- current_stream_specs$size[css.i]
                             }
@@ -1048,7 +1039,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                               what = current_stream_specs$what, 
                                                                                                               n    = current_stream_specs$n, 
                                                                                                               size = current_stream_specs$size)
-                    key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, current_stream_type$name)
+                    key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, current_stream_type$name, fsep = "/")
                     pos_list[[key]] <- pos
                     siz_list[[key]] <- current_stream_specs$size
                   }else{ # probably don't need this but let's keep
@@ -1059,7 +1050,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                          what = current_stream_specs$what[css_i], 
                                                                                                                          n    = current_stream_specs$n[css_i], 
                                                                                                                          size = current_stream_specs$size[css_i])
-                      key <- make_key("Gridcell", "Stand", stnd_i, "Patch", ptch_i, current_stream_specs$names[css_i])
+                      key <- file.path("Gridcell", "Stand", stnd_i, "Patch", ptch_i, current_stream_specs$names[css_i], fsep = "/")
                       pos_list[[key]] <- pos
                       siz_list[[key]] <- current_stream_specs$size[css_i] 
                     }
@@ -1119,7 +1110,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                              what = current_stream_specs$what, 
                                                                                                                                              n    = current_stream_specs$n, 
                                                                                                                                              size = current_stream_specs$size)
-                      key <- make_key("Gridcell", "Stand", stnd_i, past_stream, current_stream_type$name, pft_i)
+                      key <- file.path("Gridcell", "Stand", stnd_i, past_stream, current_stream_type$name, pft_i, fsep = "/")
                       pos_list[[key]] <- pos
                       siz_list[[key]] <- current_stream_specs$size
                     }else{
@@ -1129,7 +1120,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                          what = current_stream_specs$what[css.i], 
                                                                                                                                          n    = current_stream_specs$n[css.i], 
                                                                                                                                          size = current_stream_specs$size[css.i])
-                        key <- make_key("Gridcell", "Stand", stnd_i, past_stream, current_stream_type$name[css.i])
+                        key <- file.path("Gridcell", "Stand", stnd_i, past_stream, current_stream_type$name[css.i], fsep = "/")
                         pos_list[[key]] <- pos
                         siz_list[[key]] <- current_stream_specs$size[css.i]
                       }
@@ -1148,7 +1139,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                      what = current_stream_specs$what, 
                                                                                      n    = current_stream_specs$n, 
                                                                                      size = current_stream_specs$size)
-                key <- make_key("Gridcell", "Stand", stnd_i, current_stream_type$name)
+                key <- file.path("Gridcell", "Stand", stnd_i, current_stream_type$name, fsep = "/")
                 pos_list[[key]] <- pos
                 siz_list[[key]] <- current_stream_specs$size
               }else{ # probably don't need this but let's keep
@@ -1158,7 +1149,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                what = current_stream_specs$what[css_i], 
                                                                                                n    = current_stream_specs$n[css_i], 
                                                                                                size = current_stream_specs$size[css_i])
-                  key <- make_key("Gridcell", "Stand", stnd_i, current_stream_type$name)
+                  key <- file.path("Gridcell", "Stand", stnd_i, current_stream_type$name, fsep = "/")
                   pos_list[[key]] <- pos
                   siz_list[[key]] <- current_stream_specs$size[css_i] 
                 }
@@ -1209,7 +1200,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                            what = current_stream_specs$what, 
                                                                                            n    = current_stream_specs$n, 
                                                                                            size = current_stream_specs$size)
-              key <- make_key("Gridcell", past_stream, current_stream_type$name, pft_i)
+              key <- file.path("Gridcell", past_stream, current_stream_type$name, pft_i, fsep = "/")
               pos_list[[key]] <- pos
               siz_list[[key]] <- current_stream_specs$size 
               
@@ -1224,7 +1215,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                  what = current_stream_specs[[css.i]]$what, 
                                                                  n    = current_stream_specs[[css.i]]$n, 
                                                                  size = current_stream_specs[[css.i]]$size)
-                 key <- make_key("Gridcell", past_stream, current_stream_type$name, css.i)
+                 key <- file.path("Gridcell", past_stream, current_stream_type$name, css.i, fsep = "/")
                  pos_list[[key]] <- pos
                  siz_list[[key]] <- current_stream_specs[[css.i]]$size 
               }
@@ -1235,7 +1226,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                                                                  what = current_stream_specs$what[css.i], 
                                                                                                                                  n    = current_stream_specs$n[css.i], 
                                                                                                                                  size = current_stream_specs$size[css.i])
-                key <- make_key("Gridcell", past_stream, current_stream_type$name, pft_i, current_stream_specs$names[css.i])
+                key <- file.path("Gridcell", past_stream, current_stream_type$name, pft_i, current_stream_specs$names[css.i], fsep = "/")
                 pos_list[[key]] <- pos
                 siz_list[[key]] <- current_stream_specs$size[css.i] 
               }
@@ -1254,7 +1245,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                               what = current_stream_specs$what, 
                                                                               n    = current_stream_specs$n, 
                                                                               size = current_stream_specs$size)
-          key <- make_key("Gridcell", past_stream, current_stream_type$name)
+          key <- file.path("Gridcell", past_stream, current_stream_type$name, fsep = "/")
           pos_list[[key]] <- pos
           siz_list[[key]] <- current_stream_specs$size
         }else{
@@ -1264,7 +1255,7 @@ read_binary_LPJGUESS <- function(outdir, version = "PalEON"){
                                                                                          what = current_stream_specs$what[css_i], 
                                                                                          n    = current_stream_specs$n[css_i], 
                                                                                          size = current_stream_specs$size[css_i])
-            key <- make_key("Gridcell", past_stream, current_stream_type$name[css_i])
+            key <- file.path("Gridcell", past_stream, current_stream_type$name[css_i], fsep = "/")
             pos_list[[key]] <- pos
             siz_list[[key]] <- current_stream_specs$size[css_i] 
           }

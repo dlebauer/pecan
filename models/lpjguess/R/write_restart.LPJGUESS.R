@@ -33,7 +33,9 @@ write_restart.LPJGUESS <- function(outdir, runid,
                 file.path(outdir, runid, paste0("lpjguess.", as.Date(start.time), ".out")))
     system(paste("rm", file.path(rundir, runid, "lpjguess.clim")))
   } else {
-    print(paste("Files not renamed -- Need to rerun timestep", start.time, "before next time step"))
+    PEcAn.logger::logger.severe(paste("rename = FALSE: Restart cannot proceed without output file",
+                                      "lpjguess.out being renamed for", start.time))
+    stop("RENAME flag is FALSE. Must rerun this timestep before continuing.")
   }
   
   settings$run$start.date <- start.time
@@ -46,8 +48,6 @@ write_restart.LPJGUESS <- function(outdir, runid,
   Gridcell <- new.params$LPJGUESS_state$state
   pos_list <- new.params$LPJGUESS_state$pos_list
   siz_list <- new.params$LPJGUESS_state$siz_list
-  
-
   
   ## ---- Build PFT parameter table from new.params ----
   # TODO: find accurate parameters; read params from settings
@@ -90,7 +90,7 @@ write_restart.LPJGUESS <- function(outdir, runid,
   ## --- Update state ---
   # choose a minimum diameter
   min.diam = 0.5
-  Gridcell_updated <- update_state_LPJGUESS(Gridcell, pft_par_table, 
+    Gridcell_updated <- update_state_LPJGUESS(Gridcell, pft_par_table, 
                                             dens.init, dens.targ,
                                             agb.init, agb.targ,
                                             AbvGrndWood.epsilon = 0.05,
