@@ -1,8 +1,3 @@
-library(testthat)
-library(mockery)
-
-# Source the ensemble config function
-
 context("input validation for write.ensemble.configs")
 
 # Mock a model write.configs function to avoid model-specific errors
