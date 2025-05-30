@@ -31,18 +31,18 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
   }
 
   # Ensure the sites are in the ensemble data
-  if (!all(unique(site_coords$id) %in% unique(ensemble_data$site_id))) {
+  if (!all(unique(site_coords$site_id) %in% unique(ensemble_data$site_id))) {
     PEcAn.logger::logger.error("Some sites in site_coords are not present in the ensemble_data.")
   }
 
   # Filter the ensemble data to the specified date and carbon pool
   ensemble_data <- ensemble_data |>
-    filter(
+    dplyr::filter(
       lubridate::date(datetime) == lubridate::date(date),
-      site_id %in% unique(site_coords$id),
+      site_id %in% unique(site_coords$site_id),
       variable == carbon_pool
     ) |>
-    select(site_id, ensemble, prediction)  # use site_id instead of site
+    dplyr::select(site_id, ensemble, prediction)  # use site_id instead of site
 
   if (nrow(ensemble_data) == 0) {
     PEcAn.logger::logger.error("No carbon data found for the specified carbon pool.")
@@ -146,11 +146,11 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
   ## - Add CNN functionality, use tidymodels?
 
   # Dynamically get covariate names
-  covariate_names <- colnames(covariates |> select(-site_id))
+  covariate_names <- colnames(covariates |> dplyr::select(-site_id))
 
   # scale to N(0,1) (defaults of scale function)
   scaled_covariates <- covariates |>
-    mutate(across(all_of(covariate_names), scale))
+    dplyr::mutate(dplyr::across(dplyr::all_of(covariate_names), scale))
 
   # Create a single data frame with all predictors and ensemble data
   design_pt_data <- ensemble_data |>                 # from SIPNET ensemble runs
@@ -169,6 +169,11 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
   test_data <- design_pt_data[-sample, ]
 
   ensembles <- unique(ensemble_data$ensemble)
+  n_ensembles <- length(ensembles)
+
+  PEcAn.logger::logger.info(
+    paste("Start downscaling with", n_ensembles, "ensembles.")
+  )
 
   results <- furrr::future_map(seq_along(ensembles), function(i) {
     formula <- stats::as.formula(
@@ -182,6 +187,13 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
     .test_data <- test_data |>
       dplyr::filter(ensemble == i)
     
+    PEcAn.logger::logger.info(
+      paste(
+        "Fitting model for ensemble", i, "of", n_ensembles,
+        "with", nrow(.train_data), "training points.\n",
+        "and ", nrow(.test_data), "testing points."
+      )
+    )
     model <- randomForest::randomForest(formula,
       data = .train_data,
       ntree = 1000,
@@ -201,7 +213,10 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
       test_data = .test_data,
       test_prediction = test_prediction
     )
-  })
+  }, 
+  .progress = TRUE,
+  .options = furrr::furrr_options(seed = seed)
+  )
 
   # Organize the results into a single output list
   # TODO: need to disambiguate terms design point, sipnet prediction @ design points (which become 'test'
