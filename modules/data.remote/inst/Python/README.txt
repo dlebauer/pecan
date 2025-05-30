@@ -157,6 +157,9 @@ Functions (by files):
     expected columns for the txt file. It also aggregates this data by week.
 
 Next Steps:
+- Figure out what is wrong with time series and predicted observed irrigation plots
+    - What do cumulative and monthly evapotranspiration not match?
+- Missing/mislabeled weekly data in irrigation files
 - Site specific water holding capacity and crop specific rooting depth
 
     

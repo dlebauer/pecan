@@ -97,7 +97,7 @@ for key, df in merged_data_dict.items():
     df['precip_GEE'] = df['precip_GEE'] * 0.1
     
     # Add changed units to data dict
-    merged_data_dict[key] = df
+    #merged_data_dict[key] = df
     
     # Aggregate by week
     # Sum irrigation
