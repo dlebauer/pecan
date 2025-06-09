@@ -7,6 +7,8 @@ section for the next release.
 
 ## Unreleased
 
+### Added
+
 * Add `clip_and_move_raster()` function to PEcAn.data.land
 
 ## [1.9.0] - 2025-05-25
