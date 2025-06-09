@@ -33,6 +33,11 @@ subset_ensemble <- function(ensemble_data, site_coords, date, carbon_pool) {
   # Ensure the sites are in the ensemble data
   if (!all(unique(site_coords$site_id) %in% unique(ensemble_data$site_id))) {
     PEcAn.logger::logger.error("Some sites in site_coords are not present in the ensemble_data.")
+    # identify which sites are missing
+    missing <- setdiff(unique(site_coords$site_id), unique(ensemble_data$site_id))
+    setdiff(unique(ensemble_data$site_id), unique(site_coords$site_id))
+    length(unique(site_coords$site_id)) # number of sites in site_coords
+    length(unique(ensemble_data$site_id)) # number of sites in ensemble_data
   }
 
   # Filter the ensemble data to the specified date and carbon pool
@@ -176,7 +181,7 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
   )
 
   results <- furrr::future_map(seq_along(ensembles), function(i) {
-    formula <- stats::as.formula(
+    formula <- as.formula(
       paste("prediction ~", paste(covariate_names, collapse = " + "))
     )
       
@@ -188,25 +193,55 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
       dplyr::filter(ensemble == i)
     
     PEcAn.logger::logger.info(
-      paste(
         "Fitting model for ensemble", i, "of", n_ensembles,
         "with", nrow(.train_data), "training points.\n",
         "and ", nrow(.test_data), "testing points."
-      )
     )
     model <- randomForest::randomForest(formula,
       data = .train_data,
       ntree = 1000,
-      na.action = stats::na.omit,
       keep.forest = TRUE,
       importance = TRUE,
       seed = seed
     )
-    
-    prediction <- stats::predict(model, scaled_covariates)  # was map in SDA_downscale
-    # can use prediction <- terra::predict(model, scaled_covariates) for raster stack
-    test_prediction <- stats::predict(model, .test_data)    # was preds
-    
+
+    # Alternative for speed:
+    # model <- ranger::ranger(
+    #   formula,
+    #   data = .train_data,
+    #   num.trees = 1000, # correct replacement for ntree
+    #   importance = "impurity", # matches randomForest default
+    #   seed = 123, # if reproducibility is needed
+    #   num.threads = 4 # optional, speeds up predict()
+    # )
+    PEcAn.logger::logger.info(
+      "Predicting for ensemble", i, "of", n_ensembles,
+      "with", nrow(scaled_covariates), "design points."
+    )
+    start <- Sys.time()
+    prediction <- predict(model, scaled_covariates)
+    end <- Sys.time()
+    ### Optimization notes for when we scale up:
+    ### for speed as this scales up use ranger::predict
+    # prediction <- ranger::predict(model, scaled_covariates,
+    #   num.threads = parallel::detectCores() - 1)
+    ### If predict runs out of memory, can split / apply predict / and combine results
+    # split_rows <- split(scaled_covariates, ceiling(seq_len(nrow(scaled_covariates)) / 10000))
+    # preds <- purrr::map(split_rows, ~ ranger::predict(model, .x))
+    # prediction <- do.call(rbind, lapply(preds, function(x) x$predictions))
+
+    ### for raster stack as covariates
+    # prediction <- terra::predict(model, scaled_covariates)
+
+    PEcAn.logger::logger.info(
+      "Prediction for ensemble", i, "completed in",
+      round(as.numeric(end - start, units = "secs"), 2), "seconds."
+    )
+
+
+    # Predicting for test data should be much faster
+    test_prediction <- predict(model, .test_data)
+
     list(
       model = model,
       prediction = prediction, 
@@ -248,7 +283,8 @@ ensemble_downscale <- function(ensemble_data, site_coords, covariates, seed = NU
 ##' @description This function takes the output from the downscale function and computes various performance metrics for each ensemble. 
 ##' It provides a way to evaluate the accuracy of the downscaling results without modifying the main downscaling function.
 ##'
-##' @return A list of metrics for each ensemble, where each element contains MAE , MSE ,R_squared ,actual values from testing data and predicted values for the testing data
+##' @return A list of metrics for each ensemble, where each element contains MAE , RMSE ,R_squared ,CV, 
+##' and actual values from testing data and predicted values for the testing data
 ##'
 ##' @export
 downscale_metrics <- function(downscale_output) {
@@ -256,26 +292,38 @@ downscale_metrics <- function(downscale_output) {
   test_data_list <- lapply(downscale_output$test_data, function(x) dplyr::pull(x, prediction))
   predicted_list <- downscale_output$test_prediction
 
-  metric_fn <- function(actual, predicted){ # Could use PEcAn.benchmark pkg?    
-    mean <- mean(actual, na.rm = TRUE)
-    mse <- mean((actual - predicted)^2, na.rm = TRUE)
-    mae <- mean(abs(actual - predicted), na.rm = TRUE)
-    r_squared <- 1 - sum((actual - predicted)^2, na.rm = TRUE) /
-      sum((actual - mean(actual, na.rm = TRUE))^2)
-    # scaled mse
-    cv <- 100 * sqrt(mse) / mean(actual, na.rm = TRUE)
+  metric_fn <- function(actual, predicted) { # Could use PEcAn.benchmark pkg?
 
-    data.frame(
+    # Ensure no NA values in actual and predicted
+    if(any(is.na(actual)) || any(is.na(predicted))) {
+      PEcAn.logger::logger.error("NA values found in",
+        ifelse(is.na(actual), "actual", "predicted"),
+      "data.")
+    }
+    mean <- mean(actual)
+    RMSE <- sqrt(mean((actual - predicted)^2))
+    MAE <- mean(abs(actual - predicted))
+    R2 <- 1 - sum((actual - predicted)^2) /
+      sum((actual - mean(actual))^2)
+
+    CV <- 100 * RMSE / mean
+
+    if(CV > 500) {
+      PEcAn.logger::logger.error("Mean / RMSE > 500, indicating CV may not be an appropriate metric")
+      CV <- NA
+    }
+
+    stats <- data.frame(
       mean = mean,
-      MSE = mse,
-      MAE = mae,
-      R_squared = r_squared,
-      CV = cv
+      RMSE = RMSE,
+      MAE = MAE,
+      R2 = R2,
+      CV = CV
     ) |>
       signif(digits = 2)
   }
   metrics <- purrr::map2(test_data_list, predicted_list, metric_fn) |>
-    bind_rows(.id = "ensemble")
+    dplyr::bind_rows(.id = "ensemble")
 
   return(metrics)
 }
