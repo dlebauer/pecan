@@ -3,7 +3,11 @@ All notable changes are kept in this file. All changes made should be added to t
 `Unreleased`. Once a new release is made this file will be updated to create a new `Unreleased`
 section for the next release.
 
-For more information about this file see also [Keep a Changelog](http://keepachangelog.com/) .
+	For more information about this file see also [Keep a Changelog](http://keepachangelog.com/) .
+
+## Unreleased
+
+* Add `clip_and_move_raster()` function to PEcAn.data.land
 
 ## [1.9.0] - 2025-05-25
 

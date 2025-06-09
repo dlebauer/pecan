@@ -1,3 +1,7 @@
+# Unreleased
+
+* Add function `clip_and_move_raster()`.
+
 # PEcAn.data.land 1.8.1
 
 * Dependency `datapack` is now optional. It is only used by `dataone_download()` (#3373).
