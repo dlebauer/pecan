@@ -40,7 +40,7 @@ Sys.chmod(dest_path, mode = "0755")
 
 ## Now we are run, lets just check that `sipnet -h` works
 
-output <- suppressWarnings(
+status <- suppressWarnings(
     system2(dest_path, "-h", stderr = TRUE, stdout = TRUE) |>
         attr("status")
 )
