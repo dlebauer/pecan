@@ -5,6 +5,12 @@ section for the next release.
 
 For more information about this file see also [Keep a Changelog](http://keepachangelog.com/) .
 
+## Unreleased
+
+### Changed
+
+- Improved error handling in `soilgrids_soilC_extract` function #3506
+
 ## [1.9.0] - 2025-05-25
 
 ### Added
@@ -39,7 +45,6 @@ For more information about this file see also [Keep a Changelog](http://keepacha
     * Modules `PEcAn.allometry`, `PEcAn.assim.batch`, `PEcAn.data.mining`, `PEcAn.emulator`, `PEcAn.MA`, `PEcAn.photosynthesis`, `PEcAn.priors`, and `PEcAn.RTM`.
 - Renamed master branch to main
 - `PEcAn.all::pecan_version()` now reports commit hashes as well as version numbers for each installed package.
-- Improved error handling in `soilgrids_soilC_extract` function #3506
 
 ### Removed
 

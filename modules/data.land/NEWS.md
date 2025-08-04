@@ -1,3 +1,9 @@
+# PEcAn.data.land Unreleased
+
+## Changed
+
+- Improved error handling in `soilgrids_soilC_extract` function #3506
+
 # PEcAn.data.land 1.8.1
 
 * Dependency `datapack` is now optional. It is only used by `dataone_download()` (#3373).
