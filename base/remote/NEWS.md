@@ -1,3 +1,7 @@
+# Unreleased
+
+* Improved error handling in `soilgrids_soilC_extract` function #3506
+
 # PEcAn.remote 1.8.0.9000
 
 * PEcAn.remote is now distributed under the BSD 3-clause license instead of the NCSA Open Source license.
