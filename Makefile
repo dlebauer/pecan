@@ -115,15 +115,49 @@ check_base: $(BASE_C)
 check_models: $(MODELS_C)
 check_modules: $(BASE_I) $(MODULES_C)
 
-document: $(ALL_PKGS_D) .doc/base/all
-
 pkgdocs:
 	Rscript scripts/build_pkgdown.R $(ALL_PKGS) base/all || exit 1
 	
 
+# Allow optional package arguments with user-friendly aliases:
+# - `make install modules/foo` builds `.install/modules/foo`
+# - `make check models/bar` builds `.check/models/bar`
+# - `make test modules/baz` builds `.test/modules/baz`
+# - `make document modules/qux` builds `.doc/modules/qux`
+# Also accept bare package names (e.g., `make document ed`, `make test data.land`).
+# If no package is specified, fall back to the original "all packages" behavior.
+
+# Resolve user-supplied package args (either full paths or bare names) to full paths.
+VERB_TARGETS := all install check test document clean shiny pkgdocs check_base check_models check_modules book help
+USER_ARGS := $(filter-out $(VERB_TARGETS),$(MAKECMDGOALS))
+PKG_NAMES := $(notdir $(ALL_PKGS))
+resolve_pkg = $(if $(filter base/% models/% modules/%,$1),$1,$(firstword $(foreach p,$(ALL_PKGS),$(if $(filter $(notdir $p),$1),$p,))))
+USER_PKGS := $(strip $(foreach a,$(USER_ARGS),$(call resolve_pkg,$(a))))
+
+ifeq ($(strip $(USER_PKGS)),)
 install: $(ALL_PKGS_I) .install/base/all
+else
+install: $(USER_PKGS:%=.install/%)
+endif
+
+ifeq ($(strip $(USER_PKGS)),)
 check: $(ALL_PKGS_C) .check/base/all
+else
+check: $(USER_PKGS:%=.check/%)
+endif
+
+ifeq ($(strip $(USER_PKGS)),)
 test: $(ALL_PKGS_T) .test/base/all
+else
+test: $(USER_PKGS:%=.test/%)
+endif
+
+ifeq ($(strip $(USER_PKGS)),)
+document: $(ALL_PKGS_D) .doc/base/all
+else
+document: $(USER_PKGS:%=.doc/%)
+endif
+
 shiny: $(SHINY_I)
 
 book: 
@@ -140,14 +174,22 @@ clean:
 	done
 
 help:
-	@echo "Usage: make [target]"
+	@echo "Usage: make [target] [package]"
+	@echo ""
+	@echo "Targets supporting [package]: install, check, test, document"
+	@echo "  - [package] may be a full path (e.g., modules/data.land) or a bare name (e.g., data.land)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make all"
 	@echo "  make document"
-	@echo "  make .doc/modules/assim.sequential  # Generate documentation for a specific package"
+	@echo "  make document data.land                # Generate docs for a specific package (bare name)"
+	@echo "  make check ed                          # Run checks for a specific package (bare name)"
+	@echo "  make install logger                    # Install a specific package (bare name)"
+	@echo "  make test assim.sequential             # Run tests for a specific package (bare name)"
+	@echo "  make document modules/data.land        # Full path also supported"
 	@echo ""
 	@echo "Notes:"
+	@echo "  - The above commands are aliases for their dot-prefixed targets (e.g., .doc/<pkg>, .check/<pkg>, etc.)."
 	@echo "  - Components not included by default: cable and preles (models), data.mining and DART (modules)."
 	@echo "      To install any of these, see comments in the Makefile and be aware they may need code updates."
 	@echo "  - Standard workflow: install packages, run checks, test, and document before submitting a PR."
@@ -158,10 +200,10 @@ help:
 	@echo "  check_base     Run R package checks on all in base/"
 	@echo "  check_models   Run R package checks on all in models/"
 	@echo "  check_modules  Run R package checks on all in modules/"
-	@echo "  document       Generate function documentation for packages"
-	@echo "  install        Install all packages"
-	@echo "  check          Run R package checks on all packages"
-	@echo "  test           Run unit tests on all packages"
+	@echo "  document       Generate function documentation (optionally for a single package)"
+	@echo "  install        Install all packages or a specified package"
+	@echo "  check          Run R package checks on all packages or a specified package"
+	@echo "  test           Run unit tests on all packages or a specified package"
 	@echo "  shiny          Install dependencies for Shiny apps"
 	@echo "  book           Render the PEcAn bookdown documentation"
 	@echo "  pkgdocs        Build package documentation websites using pkgdown"
@@ -220,6 +262,30 @@ $(ALL_PKGS_I) $(ALL_PKGS_C) $(ALL_PKGS_T) $(ALL_PKGS_D): | .install/devtools .in
 .test/%: $$(call files_in_dir, %) | $$(@D)
 	$(call test_R_pkg, $(subst .test/,,$@))
 	echo `date` > $@
+
+# User-facing alias pattern rules:
+# 1) Allow 'make document/<pkg>', 'make install/<pkg>', 'make check/<pkg>', 'make test/<pkg>'
+#    to forward to the corresponding dot-prefixed targets without typing them.
+document/%: .doc/%
+	@true
+
+install/%: .install/%
+	@true
+
+check/%: .check/%
+	@true
+
+test/%: .test/%
+	@true
+
+# 2) Tolerate package args as separate MAKE goals (both full paths and bare names),
+#    so 'make <verb> <pkg>' doesn't error on the extra goal. These are no-ops; the real work
+#    is triggered by the corresponding verb target prerequisites resolved above.
+.PHONY: $(PKG_NAMES)
+base/% models/% modules/%:
+	@true
+$(PKG_NAMES):
+	@true
 
 # Install dependencies declared by Shiny apps
 .shiny_depends/%: $$(call files_in_dir, %) | $$(@D)

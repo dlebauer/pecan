@@ -10,7 +10,7 @@ section for the next release.
 ### Added
 
 * Add function `clip_and_save_raster_file()` for subsetting rasters to match a polygon of interest (#3537).
-
+* Simplified syntax for single package Make install, check, test, and document targets by adding aliases. Now `make install base/utils` and `make install utils` are aliased to `make install .doc/base/utils`. See `make help` for details.
 
 ## [1.9.0] - 2025-05-25
 
