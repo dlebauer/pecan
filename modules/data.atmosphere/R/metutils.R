@@ -44,7 +44,7 @@ qair2rh <- function(qair, temp, press = 1013.25) {
 ##' @aliases rh2rv
 rh2qair <- function(rh, T, press = 101325) {
   stopifnot(T[!is.na(T)] >= 0)
-  Tc <- PEcAn.utils::ud_convert(T, "K", "degC")
+  Tc <- units::ud_convert(T, "K", "degC")
   es <- 6.112 * exp((17.67 * Tc) / (Tc + 243.5))
   e <- rh * es
   p_mb <- press / 100
@@ -113,14 +113,17 @@ SatVapPres <- function(T) {
 ##' @export
 ##' @author David LeBauer
 get.rh <- function(T, Td) {
-  if(Td >= T){
-    rh <- 100
-  } else {
-    Rw <- 461.5 # gas constant for water vapor, J K-1 kg-1
-    L <- 2.501e6 + (T-273.15) * (-2430) 
-    arg <- -L / (Rw * T * Td) * (T - Td)
-    rh <- 100 * exp(arg)
-  }
+  # if dewpoint >= air temp, set RH to 100,
+  # otherwise compute using exponential decay.
+  rh <- ifelse(Td >= T,
+               100,
+               {
+                 Rw <- 461.5  # gas constant for water vapor, J K-1 kg-1
+                 L <- 2.501e6 + (T - 273.15) * (-2430)
+                 arg <- -L / (Rw * T * Td) * (T - Td)
+                 100 * exp(arg)
+               }
+  )
   return(rh)
 } # get.rh
 
@@ -158,7 +161,7 @@ wide2long <- function(data.wide, lat, lon, var) {
 ##' @author David LeBauer
 par2ppfd <- function(watts) {
   ppfd <- watts/(2.35 * 10^5)
-  return(PEcAn.utils::ud_convert(ppfd, "mol ", "umol"))
+  return(units::ud_convert(ppfd, "mol ", "umol"))
 } # par2ppfd
 
 
@@ -244,6 +247,6 @@ AirDens <- function(pres, T, rv) {
 ##' @author Istem Fer
 ##' @return lV   latent heat of vaporization (J kg-1)
 get.lv <- function(airtemp = 268.6465) {
-  airtemp_C <- PEcAn.utils::ud_convert(airtemp, "K", "degC")
+  airtemp_C <- units::ud_convert(airtemp, "K", "degC")
   return((94.21 * (365 - airtemp_C) ^ 0.31249) * 4.183 * 1000)
 } # get.lv

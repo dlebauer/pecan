@@ -31,4 +31,74 @@ test_that("get.rh RH from dewpoint",{
   expect_equal(getrhtest(25, 10), 38.82, tolerance = 0.2)
   expect_equal(getrhtest(0, -5), 69, tolerance = 0.2)
 })
-  
+
+test_that("different methods of sat_vapor_pressure work correctly", {
+  expect_equal(
+    sat_vapor_pressure(c(-10, 10), method = "Magnus"),
+    c(0.286, 1.228),
+    tolerance = 0.001
+  )
+  expect_equal(
+    sat_vapor_pressure(c(-10, 10), method = "ClausiusClapeyron"),
+    c(0.287, 1.233), 
+    tolerance = 0.001
+  )
+  expect_equal(
+    sat_vapor_pressure(c(-10, 10), method = "GoffGratch"),
+    c(0.286, 1.227),
+    tolerance = 0.001
+  )
+})
+
+test_that("sat_vapor_pressure works with different units", {
+  expect_equal(
+    sat_vapor_pressure(283.15,
+      method = "GoffGratch",
+      temp_units = "K",
+      out_units = "mb"
+    ),
+    12.27,
+    tolerance = 0.01
+  )
+
+  expect_equal(
+    sat_vapor_pressure(283.15,
+      method = "ClausiusClapeyron",
+      temp_units = "K",
+      out_units = "kPa"
+    ),
+    1.227,
+    tolerance = 0.01
+  )
+  expect_equal(
+    sat_vapor_pressure(283.15,
+      method = "Magnus",
+      temp_units = "K",
+      out_units = "Pa"
+    ),
+    1227,
+    tolerance = 1
+  )
+})
+test_that("rh2qair unchanged for representative values", {
+  rh <- c(0.3, 0.6, 0.9)
+  T <- c(280, 290, 300)
+  p <- c(101325, 100000, 90000)
+  q <- rh2qair(rh, T, p)
+  expect_type(q, "double")
+  expect_equal(length(q), 3)
+  expect_true(all(q > 0 & q < 0.05))
+})
+
+test_that("par2ppfd conversion proportional", {
+  p1 <- par2ppfd(100)
+  p2 <- par2ppfd(200)
+  expect_true(p2 > p1)
+  expect_equal(p2 / p1, 2, tolerance = 1e-8)
+})
+
+test_that("get.lv decreases with temperature", {
+  v1 <- get.lv(270)
+  v2 <- get.lv(300)
+  expect_true(v2 < v1)
+})
