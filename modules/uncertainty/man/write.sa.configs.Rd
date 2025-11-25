@@ -32,9 +32,8 @@ settings specified in \code{settings$database}}
 \item{input_design}{design matrix (see `run.write.configs()`) used to
 coordinate sampled inputs across SA runs. Columns named after
 `settings$run$inputs` supply 1-based path indices; the first row feeds the
-median run and subsequent rows follow the PFT/trait/quantile loop order. A
-`param` column may be present (it is consumed upstream) but is ignored here.
-Provide at least median + perturbed rows so every run resolves its inputs;
+median run and subsequent rows follow the PFT/trait/quantiles.
+Requires at least one row per planned SA run
 extra rows are ignored.}
 }
 \value{
