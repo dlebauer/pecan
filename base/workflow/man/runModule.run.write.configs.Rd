@@ -11,7 +11,9 @@ runModule.run.write.configs(settings, overwrite = TRUE, input_design = NULL)
 
 \item{overwrite}{logical: Replace config files if they already exist?}
 
-\item{input_design}{the input indices for samples}
+\item{input_design}{design matrix describing parameter and input indices, as
+documented in \code{run.write.configs()}. Defaults to the object returned by
+\code{generate_joint_ensemble_design()} when NULL.}
 }
 \value{
 A modified settings object, invisibly

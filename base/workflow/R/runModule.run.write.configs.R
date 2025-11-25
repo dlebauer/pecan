@@ -2,7 +2,9 @@
 #'
 #' @param settings a PEcAn Settings or MultiSettings object
 #' @param overwrite logical: Replace config files if they already exist?
-#' @param input_design the input indices for samples
+#' @param input_design design matrix describing parameter and input indices, as
+#'   documented in \code{run.write.configs()}. Defaults to the object returned by
+#'   \code{generate_joint_ensemble_design()} when NULL.
 #' @return A modified settings object, invisibly
 #' @importFrom dplyr %>%
 #' @export

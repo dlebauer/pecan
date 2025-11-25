@@ -19,7 +19,11 @@ write.ensemble.configs(
 )
 }
 \arguments{
-\item{input_design}{the input indices for samples}
+\item{input_design}{design matrix describing sampled inputs (see
+`run.write.configs()`). Columns named after `settings$run$inputs` tags give
+1-based indices into each input's `path` list and rows follow run order.
+Requires `nrow(input_design) >= ensemble.size`;
+extra rows are ignored.}
 
 \item{ensemble.size}{size of ensemble}
 
@@ -46,7 +50,7 @@ list, containing $runs = data frame of runids, $ensemble.id = the ensemble ID fo
 }
 \description{
 Writes config files for use in meta-analysis and returns a list of run ids.
-Given a pft.xml object, a list of lists as supplied by get.sa.samples, 
+Given a pft.xml object, a list of lists as supplied by get.sa.samples,
 a name to distinguish the output files, and the directory to place the files.
 }
 \details{
