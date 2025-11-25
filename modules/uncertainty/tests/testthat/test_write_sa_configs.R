@@ -1,5 +1,3 @@
-context("correct use of input_design by write.sa.configs")
-
 # Test that write.sa.configs
 # - uses input_design to choose inputs for each run
 # - run IDs are recorded in the runs matrix
@@ -7,11 +5,11 @@ context("correct use of input_design by write.sa.configs")
 # Uses mock function write.config.FAKE
 
 test_that("write.sa.configs coordinates input_design", {
-  rundir <- tempfile("sa-rundir-")
-  modeloutdir <- tempfile("sa-modelout-")
-  dir.create(rundir, recursive = TRUE, showWarnings = FALSE)
-  dir.create(modeloutdir, recursive = TRUE, showWarnings = FALSE)
-  on.exit(unlink(c(rundir, modeloutdir), recursive = TRUE), add = TRUE)
+  #---- Setup ----#
+  # Setup test fixtures:
+  #   directories, settings, input_design, write.config.FAKE, etc
+  rundir <- withr::local_tempdir(pattern = "sa-rundir-")
+  modeloutdir <- withr::local_tempdir(pattern = "sa-modelout-")
 
   met_paths <- c("met_path_1", "met_path_2", "met_path_3")
   settings <- list(
@@ -50,13 +48,13 @@ test_that("write.sa.configs coordinates input_design", {
   )
 
   written_met <- new.env(parent = emptyenv())
-  write.config.FAKE <- function(defaults, trait.values, settings, run.id) {
+  assign("write.config.FAKE", function(defaults, trait.values, settings, run.id) {
     path_file <- file.path(settings$rundir, run.id, "met_path.txt")
     writeLines(settings$run$inputs$met$path, path_file)
     written_met[[run.id]] <- settings$run$inputs$met$path
     invisible(NULL)
-  }
-  withr::defer(rm("write.config.FAKE"))
+  }, envir = .GlobalEnv)
+  withr::defer(rm("write.config.FAKE", envir = .GlobalEnv))
 
   result <- PEcAn.uncertainty::write.sa.configs(
     defaults = settings$pfts,
@@ -66,7 +64,8 @@ test_that("write.sa.configs coordinates input_design", {
     write.to.db = FALSE,
     input_design = input_design
   )
-
+  #---- Tests ----#
+  # Test that result has expected structure and content
   expect_equal(result$ensemble.id, "E-TEST")
   median_id <- "SA-median-1"
   trait1_id <- "SA-pftA-trait1-0.95-1"
@@ -78,11 +77,12 @@ test_that("write.sa.configs coordinates input_design", {
   )
   expect_equal(as.character(result$runs$pftA["95", "trait1"]), trait1_id)
   expect_equal(as.character(result$runs$pftA["95", "trait2"]), trait2_id)
-
+  # Test that runs directories were created and contain expected met paths
   runs_file <- file.path(rundir, "runs.txt")
   expect_true(file.exists(runs_file))
   expect_length(readLines(runs_file), 3)
 
+  # Check that each run directory has the correct met path
   expect_true(readLines(file.path(rundir, trait1_id, "met_path.txt")) %in% met_paths)
   expect_true(readLines(file.path(rundir, trait2_id, "met_path.txt")) %in% met_paths)
 })
