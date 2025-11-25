@@ -1,5 +1,9 @@
 # PEcAn.uncertainty 1.8.2
 
+* Added the shared `input_design` matrix, generated via
+    `runModule.run.write.configs()`/`generate_joint_ensemble_design()`, that keeps
+    parameter draws and sampled inputs aligned across `run.write.configs()`,
+    `write.ensemble.configs()`, and `write.sa.configs()` (#3535, #3660, #3634, #3677).
 * Plotting sensitivity now makes less noise in the console and once again
     produces a one-page PDF as intended.
 * `write.ensemble.configs` and `write.sa.configs` now generate an ensemble id
@@ -10,7 +14,6 @@
 * Documented that `runModule.run.sensitivity.analysis` does not yet work with
     multisite settings.
     This will be fixed in a future release.
-
 
 # PEcAn.uncertainty 1.8.1
 

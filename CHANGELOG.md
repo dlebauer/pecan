@@ -33,6 +33,10 @@ For more information about this file see also [Keep a Changelog](http://keepacha
  - Directory structure for PEcAn Quarto notebooks under `pecan/documentation/tutorials/Demo_1_Basic_Run`
  - Support for inspecting and plotting NetCDF output variables within the notebook workflow.
 - added support for soil temperature, relative humidity, soil moisture, and PPFD downscaling to `met_temporal_downscale.Gaussian_ensemble`
+- Added the shared `input_design` matrix, generated via 
+ `runModule.run.write.configs()`/`generate_joint_ensemble_design()`, that keeps
+  parameter draws and sampled inputs aligned across `run.write.configs()`,
+  `write.ensemble.configs()`, and `write.sa.configs()` (#3535, #3660, #3634, #3677).
 
 ### Fixed
 
@@ -43,6 +47,10 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 ### Changed
 
 - Ensemble and sensitivity analyses now assign an ensemble ID if one is not specified in the XML, even when running with no DB (#3654).
+- Clarified how to build or reuse the shared `input_design` design matrix that
+  coordinates parameter draws and sampled inputs across
+  `runModule.run.write.configs()`, ensemble, and sensitivity writers so custom
+  workflows know to keep the `param` column and row order intact (#3677).
 - `download.ERA5_cds` now uses the R package ecmwfr (replacing python dependency of cdsapi via reticulate), enabling direct NetCDF downloads; and made flexible for both reanalysis and ensemble data product.
 - `extract_soil_gssurgo` now supports spatial sampling using a grid of user-defined size and spacing. And supports ensemble simulation of soil organic carbon (SOC) stocks, using area-weighted aggregation
 - The ERA5 NC extraction function can now handle multi-site instead of one
