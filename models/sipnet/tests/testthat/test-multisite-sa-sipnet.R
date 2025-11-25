@@ -1,16 +1,14 @@
 test_that("run.write.configs coordinates SIPNET multi-site SA inputs", {
+    old_level <- PEcAn.logger::logger.setLevel("ERROR")
+    withr::defer(PEcAn.logger::logger.setLevel(old_level), priority = "last")
+
     testthat::skip_if_not_installed("PEcAn.workflow")
     testthat::skip_if_not_installed("PEcAn.uncertainty")
 
-    remove_stub <- get0("remove.config.SIPNET", envir = .GlobalEnv)
-    assign("remove.config.SIPNET", function(...) invisible(TRUE), envir = .GlobalEnv)
-    withr::defer({
-        if (is.null(remove_stub)) {
-            rm("remove.config.SIPNET", envir = .GlobalEnv)
-        } else {
-            assign("remove.config.SIPNET", remove_stub, envir = .GlobalEnv)
-        }
-    })
+    stub_env <- new.env(parent = emptyenv())
+    stub_env$remove.config.SIPNET <- function(...) invisible(TRUE)
+    attach(stub_env, name = "pecan_sipnet_stub")
+    withr::defer(detach("pecan_sipnet_stub"), priority = "first")
 
     root <- withr::local_tempdir()
     workflow_root <- file.path(root, "workflow")
