@@ -44,14 +44,12 @@ test_that("write.sa.configs coordinates input_design", {
 
   input_design <- data.frame(
     param = 1:3,
-    met = c(1, 2, 3)
+    met = rep(1, 3)
   )
 
-  written_met <- new.env(parent = emptyenv())
   assign("write.config.FAKE", function(defaults, trait.values, settings, run.id) {
     path_file <- file.path(settings$rundir, run.id, "met_path.txt")
     writeLines(settings$run$inputs$met$path, path_file)
-    written_met[[run.id]] <- settings$run$inputs$met$path
     invisible(NULL)
   }, envir = .GlobalEnv)
   withr::defer(rm("write.config.FAKE", envir = .GlobalEnv))
