@@ -37,3 +37,15 @@ This is a basic example which shows you how to solve a common problem:
 library(PEcAn.SIPNET)
 ## basic example code
 ```
+
+## Runtime / Performance Notes
+
+- `data.table` is a required dependency. `model2netcdf.SIPNET` uses `data.table::fread` for `sipnet.out` parsing.
+- `model2netcdf.SIPNET` supports two `sipnet.out` header styles:
+  - header on first line
+  - `Notes:` preamble line before header
+- Internal NetCDF worker default is `max(1, parallel::detectCores() - 1)`.
+  - Override with `PECAN_SIPNET_NC_WORKERS=<N>`.
+- `conflict=TRUE` requires `cdo` in `PATH`; function fails fast if `cdo` is unavailable.
+- `PECAN_SIPNET_PROFILE=1` enables timing summaries (optional CSV via `PECAN_SIPNET_PROFILE_CSV`).
+- `PECAN_SIPNET_VERBOSE=1` enables per-run config input logging in `write.config.SIPNET`.

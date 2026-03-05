@@ -12,11 +12,55 @@
 ##' @export
 ##' @importFrom rlang %||%
 ##' @author Michael Dietze
+.sipnet_config_cache <- new.env(parent = emptyenv())
+
+.sipnet_profile_enabled <- function() {
+  tolower(trimws(Sys.getenv("PECAN_SIPNET_PROFILE", ""))) %in% c("1", "true", "yes", "on")
+}
+
+.sipnet_verbose_enabled <- function() {
+  tolower(trimws(Sys.getenv("PECAN_SIPNET_VERBOSE", ""))) %in% c("1", "true", "yes", "on")
+}
+
+.sipnet_cache_read_lines <- function(path) {
+  key <- paste0("lines::", normalizePath(path, mustWork = FALSE))
+  if (!exists(key, envir = .sipnet_config_cache, inherits = FALSE)) {
+    assign(key, readLines(con = path, n = -1), envir = .sipnet_config_cache)
+  }
+  get(key, envir = .sipnet_config_cache, inherits = FALSE)
+}
+
+.sipnet_cache_read_table <- function(path) {
+  key <- paste0("table::", normalizePath(path, mustWork = FALSE))
+  if (!exists(key, envir = .sipnet_config_cache, inherits = FALSE)) {
+    assign(key, utils::read.table(path), envir = .sipnet_config_cache)
+  }
+  get(key, envir = .sipnet_config_cache, inherits = FALSE)
+}
+
 write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs = NULL, IC = NULL,
                                 restart = NULL, spinup = NULL) {
+  profile_enabled <- .sipnet_profile_enabled()
+  timings <- list()
+  tic <- function() proc.time()[["elapsed"]]
+  toc <- function(stage, started_at) {
+    if (!profile_enabled) {
+      return(invisible(NULL))
+    }
+    timings[[length(timings) + 1]] <<- data.frame(
+      function_name = "write.config.SIPNET",
+      run_id = as.character(run.id),
+      stage = stage,
+      elapsed_seconds = unname(proc.time()[["elapsed"]] - started_at),
+      stringsAsFactors = FALSE
+    )
+    invisible(NULL)
+  }
+
   ### WRITE sipnet.in
+  t_main <- tic()
   template.in <- system.file("sipnet.in", package = "PEcAn.SIPNET")
-  config.text <- readLines(con = template.in, n = -1)
+  config.text <- .sipnet_cache_read_lines(template.in)
   writeLines(config.text, con = file.path(settings$rundir, run.id, "sipnet.in"))
   
   ### WRITE *.clim
@@ -27,7 +71,9 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
       template.clim <- inputs$met$path
     }
   }
-  PEcAn.logger::logger.info(paste0("Writing SIPNET configs with input ", template.clim))
+  if (.sipnet_verbose_enabled()) {
+    PEcAn.logger::logger.info(paste0("Writing SIPNET configs with input ", template.clim))
+  }
   
   # find out where to write run/ouput
   rundir <- file.path(settings$host$rundir, as.character(run.id))
@@ -36,12 +82,50 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     rundir <- file.path(settings$rundir, as.character(run.id))
     outdir <- file.path(settings$modeloutdir, as.character(run.id))
   }
+
+  write_profile_csv <- trimws(Sys.getenv("PECAN_SIPNET_PROFILE_CSV", ""))
+  write_profile_csv <- if (profile_enabled) {
+    if (tolower(write_profile_csv) %in% c("1", "true", "yes", "on")) {
+      file.path(outdir, "sipnet_write.config.profile.csv")
+    } else if (nzchar(write_profile_csv)) {
+      write_profile_csv
+    } else {
+      ""
+    }
+  } else {
+    ""
+  }
+
+  flush_timings <- function() {
+    if (!profile_enabled || length(timings) == 0) {
+      return(invisible(NULL))
+    }
+    timing_df <- do.call(rbind, timings)
+    summary_txt <- apply(timing_df, 1, function(x) {
+      paste0(x[["function_name"]], " [", x[["run_id"]], "] ", x[["stage"]], ": ", signif(as.numeric(x[["elapsed_seconds"]]), 4), " s")
+    })
+    PEcAn.logger::logger.info("SIPNET profiling summary:\n", paste(summary_txt, collapse = "\n"), wrap = FALSE)
+    if (nzchar(write_profile_csv)) {
+      utils::write.table(
+        timing_df,
+        file = write_profile_csv,
+        sep = ",",
+        row.names = FALSE,
+        col.names = !file.exists(write_profile_csv),
+        quote = TRUE,
+        append = file.exists(write_profile_csv)
+      )
+    }
+    invisible(NULL)
+  }
+  on.exit(flush_timings(), add = TRUE)
   
   # create launch script (which will create symlink)
+  t_jobsh <- tic()
   if (!is.null(settings$model$jobtemplate) && file.exists(settings$model$jobtemplate)) {
-    jobsh <- readLines(con = settings$model$jobtemplate, n = -1)
+    jobsh <- .sipnet_cache_read_lines(settings$model$jobtemplate)
   } else {
-    jobsh <- readLines(con = system.file("template.job", package = "PEcAn.SIPNET"), n = -1)
+    jobsh <- .sipnet_cache_read_lines(system.file("template.job", package = "PEcAn.SIPNET"))
   }
   
   # create host specific setttings
@@ -130,6 +214,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
   
   writeLines(jobsh, con = file.path(settings$rundir, run.id, "job.sh"))
   Sys.chmod(file.path(settings$rundir, run.id, "job.sh"))
+  toc("write_job_sh", t_jobsh)
   
 
   ### Copy event file
@@ -147,12 +232,22 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
   file.copy(template.paramSpatial, file.path(settings$rundir, run.id, "sipnet.param-spatial"))
   
   ### WRITE *.param
+  t_param <- tic()
   template.param <- system.file("template.param", package = "PEcAn.SIPNET")
   if ("default.param" %in% names(settings$model)) {
     template.param <- settings$model$default.param
   }
   
-  param <- utils::read.table(template.param)
+  param <- .sipnet_cache_read_table(template.param)
+  param_index <- as.list(seq_len(nrow(param)))
+  names(param_index) <- param[, 1]
+  idx <- function(name) {
+    out <- param_index[[name]]
+    if (is.null(out)) {
+      PEcAn.logger::logger.error("Missing parameter", sQuote(name), "in SIPNET template")
+    }
+    out
+  }
   
   #### write run-specific PFT parameters here
   #
@@ -175,14 +270,37 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
       "write.config.SIPNET will use the value it sees last."
     )
   }
+  constant.traits <- unlist(defaults[[1]]$constants)
+  constant.names <- names(constant.traits)
+
+  leafphdata <- NULL
+  obs_year_start <- NA_integer_
+  obs_year_end <- NA_integer_
+  if (!is.null(settings$run$inputs$leaf_phenology)) {
+    obs_year_start <- lubridate::year(settings$run$start.date)
+    obs_year_end <- lubridate::year(settings$run$end.date)
+    if (obs_year_start != obs_year_end) {
+      PEcAn.logger::logger.info(
+        "Start.date and end.date are not in the same year.",
+        "Using phenological data from start year only."
+      )
+    }
+    leaf_pheno_path <- settings$run$inputs$leaf_phenology$path
+    if (!is.null(leaf_pheno_path)) {
+      leafphdata <- utils::read.csv(leaf_pheno_path)
+    } else {
+      PEcAn.logger::logger.info("No phenology data were found.",
+        "Please consider running `PEcAn.data.remote::extract_phenology_MODIS`",
+        "to get the parameter file."
+      )
+    }
+  }
+
   for (pft in seq_along(trait.values)) {
     pft.traits <- unlist(trait.values[[pft]])
     pft.trait.names <- names(pft.traits)
     
     ## Append/replace params specified as constants
-    constant.traits <- unlist(defaults[[1]]$constants)
-    constant.names <- names(constant.traits)
-    
     # Replace matches
     for (i in seq_along(constant.traits)) {
       ind <- match(constant.names[i], pft.trait.names)
@@ -206,7 +324,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     if ("leafC" %in% pft.trait.names) {
       leafC <- pft.traits[pft.trait.names == "leafC"] |>
         PEcAn.utils::ud_convert("percent", "1") # percentage to fraction
-      id <- which(param[, 1] == "cFracLeaf")
+      id <- idx("cFracLeaf")
       param[id, 2] <- leafC
     } else {
       leafC <- 0.48 # Fixed value if not available, because it is used in downstream calculations
@@ -214,7 +332,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
 
     # Specific leaf area converted to SLW
     # leafCSpWt [gC/m2 leaf], SLA [m2 leaf/kg leaf], leafC [g C / g leaf]
-    id <- which(param[, 1] == "leafCSpWt")
+    id <- idx("leafCSpWt")
     if ("SLA" %in% pft.trait.names) {
       SLA <- pft.traits[which(pft.trait.names == "SLA")]
       param[id, 2] <- PEcAn.utils::ud_convert(leafC / SLA, "kg/m2", "g/m2")
@@ -225,7 +343,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     # Maximum photosynthesis
     # SIPNET: aMax [nmol CO2 / g   leaf / sec]
     # PEcAn:  Amax [umol CO2 / m^2 leaf / sec]
-    id <- which(param[, 1] == "aMax")
+    id <- idx("aMax")
     SLA_g <- PEcAn.utils::ud_convert(SLA, "1/kg", "1/g") 
     if ("Amax" %in% pft.trait.names) {
       Amax_area <- pft.traits[which(pft.trait.names == "Amax")] # [µmol/m2/s]
@@ -237,34 +355,34 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     
     # Daily fraction of maximum photosynthesis
     if ("AmaxFrac" %in% pft.trait.names) {
-      param[which(param[, 1] == "aMaxFrac"), 2] <- pft.traits[which(pft.trait.names == "AmaxFrac")]
+      param[idx("aMaxFrac"), 2] <- pft.traits[which(pft.trait.names == "AmaxFrac")]
     }
     
     ### Canopy extinction coefficiet (k)
     if ("extinction_coefficient" %in% pft.trait.names) {
-      param[which(param[, 1] == "attenuation"), 2] <- pft.traits[which(pft.trait.names == "extinction_coefficient")]
+      param[idx("attenuation"), 2] <- pft.traits[which(pft.trait.names == "extinction_coefficient")]
     }
     
     # Leaf respiration rate converted to baseFolRespFrac
     if ("leaf_respiration_rate_m2" %in% pft.trait.names) {
       Rd <- pft.traits[which(pft.trait.names == "leaf_respiration_rate_m2")]
-      id <- which(param[, 1] == "baseFolRespFrac")
+      id <- idx("baseFolRespFrac")
       param[id, 2] <- max(min(Rd / Amax_area, 1), 0)
     }
     
     # Low temp threshold for photosynethsis
     if ("Vm_low_temp" %in% pft.trait.names) {
-      param[which(param[, 1] == "psnTMin"), 2] <- pft.traits[which(pft.trait.names == "Vm_low_temp")]
+      param[idx("psnTMin"), 2] <- pft.traits[which(pft.trait.names == "Vm_low_temp")]
     }
     
     # Opt. temp for photosynthesis
     if ("psnTOpt" %in% pft.trait.names) {
-      param[which(param[, 1] == "psnTOpt"), 2] <- pft.traits[which(pft.trait.names == "psnTOpt")]
+      param[idx("psnTOpt"), 2] <- pft.traits[which(pft.trait.names == "psnTOpt")]
     }
     
     # Growth respiration factor (fraction of GPP)
     if ("growth_resp_factor" %in% pft.trait.names) {
-      param[which(param[, 1] == "growthRespFrac"), 2] <- pft.traits[which(pft.trait.names == "growth_resp_factor")]
+      param[idx("growthRespFrac"), 2] <- pft.traits[which(pft.trait.names == "growth_resp_factor")]
     }
     ### !!! NOT YET USED
     #Jmax = NA
@@ -280,7 +398,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     
     # Half saturation of PAR.  PAR at which photosynthesis occurs at 1/2 theoretical maximum (Einsteins * m^-2 ground area * day^-1).
     #if(!is.na(Jmax) & !is.na(alpha)){
-    # param[which(param[,1] == "halfSatPar"),2] = Jmax/(2*alpha)
+    # param[idx("halfSatPar"),2] = Jmax/(2*alpha)
     ### WARNING: this is a very coarse linear approximation and needs improvement *****
     ### Yes, we also need to work on doing a paired query where we have both data together.
     ### Once halfSatPar is calculated, need to remove Jmax and quantum_efficiency from param list so they are not included in SA
@@ -290,45 +408,45 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     # Half saturation of PAR.  PAR at which photosynthesis occurs at 1/2 theoretical maximum (Einsteins * m^-2 ground area * day^-1).
     # Temporary implementation until above is working.
     if ("half_saturation_PAR" %in% pft.trait.names) {
-      param[which(param[, 1] == "halfSatPar"), 2] <- pft.traits[which(pft.trait.names == "half_saturation_PAR")]
+      param[idx("halfSatPar"), 2] <- pft.traits[which(pft.trait.names == "half_saturation_PAR")]
     }
     
     # Ball-berry slomatal slope parameter m
     if ("stomatal_slope.BB" %in% pft.trait.names) {
-      id <- which(param[, 1] == "m_ballBerry")
+      id <- idx("m_ballBerry")
       param[id, 2] <- pft.traits[which(pft.trait.names == "stomatal_slope.BB")]
     }
     
     # Slope of VPD–photosynthesis relationship. dVpd = 1 - dVpdSlope * vpd^dVpdExp
     if ("dVPDSlope" %in% pft.trait.names) {
-      param[which(param[, 1] == "dVpdSlope"), 2] <- pft.traits[which(pft.trait.names == "dVPDSlope")]
+      param[idx("dVpdSlope"), 2] <- pft.traits[which(pft.trait.names == "dVPDSlope")]
     }
     
     # VPD–water use efficiency relationship.  dVpd = 1 - dVpdSlope * vpd^dVpdExp
     if ("dVpdExp" %in% pft.trait.names) {
-      param[which(param[, 1] == "dVpdExp"), 2] <- pft.traits[which(pft.trait.names == "dVpdExp")]
+      param[idx("dVpdExp"), 2] <- pft.traits[which(pft.trait.names == "dVpdExp")]
     }
     
     # Leaf turnover rate average turnover rate of leaves, in fraction per day NOTE: read in as
     # per-year rate!
     if ("leaf_turnover_rate" %in% pft.trait.names) {
-      param[which(param[, 1] == "leafTurnoverRate"), 2] <- pft.traits[which(pft.trait.names == "leaf_turnover_rate")]
+      param[idx("leafTurnoverRate"), 2] <- pft.traits[which(pft.trait.names == "leaf_turnover_rate")]
     }
     
     if ("wueConst" %in% pft.trait.names) {
-      param[which(param[, 1] == "wueConst"), 2] <- pft.traits[which(pft.trait.names == "wueConst")]
+      param[idx("wueConst"), 2] <- pft.traits[which(pft.trait.names == "wueConst")]
     }
     # vegetation respiration Q10.
     if ("veg_respiration_Q10" %in% pft.trait.names) {
-      param[which(param[, 1] == "vegRespQ10"), 2] <- pft.traits[which(pft.trait.names == "veg_respiration_Q10")]
+      param[idx("vegRespQ10"), 2] <- pft.traits[which(pft.trait.names == "veg_respiration_Q10")]
     }
     
     # Base vegetation respiration. vegetation maintenance respiration at 0 degrees C (g C respired * g^-1 plant C * day^-1)
     # NOTE: only counts plant wood C - leaves handled elsewhere (both above and below-ground: assumed for now to have same resp. rate)
     # NOTE: read in as per-year rate!
     if ("stem_respiration_rate" %in% pft.trait.names) {
-      vegRespQ10 <- param[which(param[, 1] == "vegRespQ10"), 2]
-      id <- which(param[, 1] == "baseVegResp")
+      vegRespQ10 <- param[idx("vegRespQ10"), 2]
+      id <- idx("baseVegResp")
       ## Convert from umols CO2 kg s-1 to gC g day-1
       stem_resp_g <- (((pft.traits[which(pft.trait.names == "stem_respiration_rate")]) *
                          (44.0096 / 1e+06) * (12.01 / 44.0096)) / 1000) * 86400
@@ -339,19 +457,19 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     
     # turnover of fine roots (per year rate)
     if ("root_turnover_rate" %in% pft.trait.names) {
-      id <- which(param[, 1] == "fineRootTurnoverRate")
+      id <- idx("fineRootTurnoverRate")
       param[id, 2] <- pft.traits[which(pft.trait.names == "root_turnover_rate")]
     }
     
     # fine root respiration Q10
     if ("fine_root_respiration_Q10" %in% pft.trait.names) {
-      param[which(param[, 1] == "fineRootQ10"), 2] <- pft.traits[which(pft.trait.names == "fine_root_respiration_Q10")]
+      param[idx("fineRootQ10"), 2] <- pft.traits[which(pft.trait.names == "fine_root_respiration_Q10")]
     }
     
     # base respiration rate of fine roots (per year rate)
     if ("root_respiration_rate" %in% pft.trait.names) {
-      fineRootQ10 <- param[which(param[, 1] == "fineRootQ10"), 2]
-      id <- which(param[, 1] == "baseFineRootResp")
+      fineRootQ10 <- param[idx("fineRootQ10"), 2]
+      id <- idx("baseFineRootResp")
       ## Convert from umols CO2 kg s-1 to gC g day-1
       root_resp_rate_g <- (((pft.traits[which(pft.trait.names == "root_respiration_rate")]) *
                               (44.0096/1e+06) * (12.01 / 44.0096)) / 1000) * 86400
@@ -362,7 +480,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     
     # coarse root respiration Q10
     if ("coarse_root_respiration_Q10" %in% pft.trait.names) {
-      param[which(param[, 1] == "coarseRootQ10"), 2] <- pft.traits[which(pft.trait.names == "coarse_root_respiration_Q10")]
+      param[idx("coarseRootQ10"), 2] <- pft.traits[which(pft.trait.names == "coarse_root_respiration_Q10")]
     }
     # WARNING: fineRootAllocation + woodAllocation + leafAllocation isn't supposed to exceed 1
     # see sipnet.c code L2005 :
@@ -383,111 +501,99 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     
     # fineRootAllocation
     if ("root_allocation_fraction" %in% pft.trait.names) {
-      param[which(param[, 1] == "fineRootAllocation"), 2] <- pft.traits[which(pft.trait.names == "root_allocation_fraction")]
+      param[idx("fineRootAllocation"), 2] <- pft.traits[which(pft.trait.names == "root_allocation_fraction")]
     }
     
     # woodAllocation
     if ("wood_allocation_fraction" %in% pft.trait.names) {
-      param[which(param[, 1] == "woodAllocation"), 2] <- pft.traits[which(pft.trait.names == "wood_allocation_fraction")]
+      param[idx("woodAllocation"), 2] <- pft.traits[which(pft.trait.names == "wood_allocation_fraction")]
     }
     
     # leafAllocation
     if ("leaf_allocation_fraction" %in% pft.trait.names) {
-      param[which(param[, 1] == "leafAllocation"), 2] <- pft.traits[which(pft.trait.names == "leaf_allocation_fraction")]
+      param[idx("leafAllocation"), 2] <- pft.traits[which(pft.trait.names == "leaf_allocation_fraction")]
     }
     
     # wood_turnover_rate
     if ("wood_turnover_rate" %in% pft.trait.names) {
-      param[which(param[, 1] == "woodTurnoverRate"), 2] <- pft.traits[which(pft.trait.names == "wood_turnover_rate")]
+      param[idx("woodTurnoverRate"), 2] <- pft.traits[which(pft.trait.names == "wood_turnover_rate")]
     }
     
     ### ----- Soil parameters soil respiration Q10.
     if ("soil_respiration_Q10" %in% pft.trait.names) {
-      param[which(param[, 1] == "soilRespQ10"), 2] <- pft.traits[which(pft.trait.names == "soil_respiration_Q10")]
+      param[idx("soilRespQ10"), 2] <- pft.traits[which(pft.trait.names == "soil_respiration_Q10")]
     }
     # soil respiration rate -- units = 1/year, reference = 0C
     if ("som_respiration_rate" %in% pft.trait.names) {
-      param[which(param[, 1] == "baseSoilResp"), 2] <- pft.traits[which(pft.trait.names == "som_respiration_rate")]
+      param[idx("baseSoilResp"), 2] <- pft.traits[which(pft.trait.names == "som_respiration_rate")]
     }
     
     # litterBreakdownRate
     if ("turn_over_time" %in% pft.trait.names) {
-      id <- which(param[, 1] == "litterBreakdownRate")
+      id <- idx("litterBreakdownRate")
       param[id, 2] <- pft.traits[which(pft.trait.names == "turn_over_time")]
     }
     # frozenSoilEff
     if ("frozenSoilEff" %in% pft.trait.names) {
-      param[which(param[, 1] == "frozenSoilEff"), 2] <- pft.traits[which(pft.trait.names == "frozenSoilEff")]
+      param[idx("frozenSoilEff"), 2] <- pft.traits[which(pft.trait.names == "frozenSoilEff")]
     }
     
     # frozenSoilFolREff
     if ("frozenSoilFolREff" %in% pft.trait.names) {
-      param[which(param[, 1] == "frozenSoilFolREff"), 2] <- pft.traits[which(pft.trait.names == "frozenSoilFolREff")]
+      param[idx("frozenSoilFolREff"), 2] <- pft.traits[which(pft.trait.names == "frozenSoilFolREff")]
     }
     
     # soilWHC
     if ("soilWHC" %in% pft.trait.names) {
-      param[which(param[, 1] == "soilWHC"), 2] <- pft.traits[which(pft.trait.names == "soilWHC")]
+      param[idx("soilWHC"), 2] <- pft.traits[which(pft.trait.names == "soilWHC")]
     }
     # 10/31/2017 IF: these were the two assumptions used in the emulator paper in order to reduce dimensionality
     # These results in improved winter soil respiration values
     # they don't affect anything when the seasonal soil respiration functionality in SIPNET is turned-off
     if(TRUE){
       # assume soil resp Q10 cold == soil resp Q10
-      param[which(param[, 1] == "soilRespQ10Cold"), 2] <- param[which(param[, 1] == "soilRespQ10"), 2]
+      param[idx("soilRespQ10Cold"), 2] <- param[idx("soilRespQ10"), 2]
       # default SIPNET prior of baseSoilRespCold was 1/4th of baseSoilResp
       # assuming they will scale accordingly
-      param[which(param[, 1] == "baseSoilRespCold"), 2] <- param[which(param[, 1] == "baseSoilResp"), 2] * 0.25
+      param[idx("baseSoilRespCold"), 2] <- param[idx("baseSoilResp"), 2] * 0.25
     }
     
     if ("immedEvapFrac" %in% pft.trait.names) {
-      param[which(param[, 1] == "immedEvapFrac"), 2] <- pft.traits[which(pft.trait.names == "immedEvapFrac")]
+      param[idx("immedEvapFrac"), 2] <- pft.traits[which(pft.trait.names == "immedEvapFrac")]
     }
     
     if ("leafWHC" %in% pft.trait.names) {
-      param[which(param[, 1] == "leafPoolDepth"), 2] <- pft.traits[which(pft.trait.names == "leafWHC")]
+      param[idx("leafPoolDepth"), 2] <- pft.traits[which(pft.trait.names == "leafWHC")]
     }
     
     if ("waterRemoveFrac" %in% pft.trait.names) {
-      param[which(param[, 1] == "waterRemoveFrac"), 2] <- pft.traits[which(pft.trait.names == "waterRemoveFrac")]
+      param[idx("waterRemoveFrac"), 2] <- pft.traits[which(pft.trait.names == "waterRemoveFrac")]
     }
     
     if ("fastFlowFrac" %in% pft.trait.names) {
-      param[which(param[, 1] == "fastFlowFrac"), 2] <- pft.traits[which(pft.trait.names == "fastFlowFrac")]
+      param[idx("fastFlowFrac"), 2] <- pft.traits[which(pft.trait.names == "fastFlowFrac")]
     }
     
     if ("rdConst" %in% pft.trait.names) {
-      param[which(param[, 1] == "rdConst"), 2] <- pft.traits[which(pft.trait.names == "rdConst")]
+      param[idx("rdConst"), 2] <- pft.traits[which(pft.trait.names == "rdConst")]
     }
     ### ----- Phenology parameters GDD leaf on
     if ("GDD" %in% pft.trait.names) {
-      param[which(param[, 1] == "gddLeafOn"), 2] <- pft.traits[which(pft.trait.names == "GDD")]
+      param[idx("gddLeafOn"), 2] <- pft.traits[which(pft.trait.names == "GDD")]
     }
     
     # Fraction of leaf fall per year (should be 1 for decid)
     if ("fracLeafFall" %in% pft.trait.names) {
-      param[which(param[, 1] == "fracLeafFall"), 2] <- pft.traits[which(pft.trait.names == "fracLeafFall")]
+      param[idx("fracLeafFall"), 2] <- pft.traits[which(pft.trait.names == "fracLeafFall")]
     }
     
     # Leaf growth.  Amount of C added to the leaf during the greenup period
     if ("leafGrowth" %in% pft.trait.names) {
-      param[which(param[, 1] == "leafGrowth"), 2] <- pft.traits[which(pft.trait.names == "leafGrowth")]
+      param[idx("leafGrowth"), 2] <- pft.traits[which(pft.trait.names == "leafGrowth")]
     }
 
-    #update LeafOnday and LeafOffDay
-    if (!is.null(settings$run$inputs$leaf_phenology)) {
-      obs_year_start <- lubridate::year(settings$run$start.date)
-      obs_year_end <- lubridate::year(settings$run$end.date)
-      if (obs_year_start != obs_year_end) {
-        PEcAn.logger::logger.info(
-          "Start.date and end.date are not in the same year.",
-          "Using phenological data from start year only."
-        )
-      }
-      leaf_pheno_path <- settings$run$inputs$leaf_phenology$path
-      if (!is.null(leaf_pheno_path)) {
-        ##read data
-        leafphdata <- utils::read.csv(leaf_pheno_path) #leaf phenology data starting from 2001-01-01 to current
+    # update LeafOnday and LeafOffDay
+    if (!is.null(leafphdata)) {
         leafOnDay <- leafphdata$leafonday[leafphdata$year == obs_year_start
                                           & leafphdata$site_id == settings$run$site$id]
         leafOffDay <- leafphdata$leafoffday[leafphdata$year == obs_year_start
@@ -503,7 +609,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
             PEcAn.logger::logger.info(paste("Missing leafOnDay for current year. Using site mean:", leafOnDay))
           } else {
             # 2. If no site history exists, fall back to parameter file
-            leafOnDay <- param[which(param[, 1] == "leafOnDay"), 2]
+            leafOnDay <- param[idx("leafOnDay"), 2]
             PEcAn.logger::logger.warn("Missing leafOnDay and no site history. Using parameter file default.")
           }
         }
@@ -518,7 +624,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
             PEcAn.logger::logger.info(paste("Missing leafOffDay for current year. Using site mean:", leafOffDay))
           } else {
             # 2. If no site history exists, fall back to parameter file
-            leafOffDay <- param[which(param[, 1] == "leafOffDay"), 2]
+            leafOffDay <- param[idx("leafOffDay"), 2]
             PEcAn.logger::logger.warn("Missing leafOffDay and no site history. Using parameter file default.")
           }
         }
@@ -526,18 +632,15 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
         # when we have Leaf off date larger than leaf on date.
         # Otherwise the phenology will not be used.
         if (leafOffDay > leafOnDay) {
-          param[which(param[, 1] == "leafOnDay"), 2] <- leafOnDay
-          param[which(param[, 1] == "leafOffDay"), 2] <- leafOffDay
+          param[idx("leafOnDay"), 2] <- leafOnDay
+          param[idx("leafOffDay"), 2] <- leafOffDay
         }
-      } else {
-        PEcAn.logger::logger.info("No phenology data were found.",
-          "Please consider running `PEcAn.data.remote::extract_phenology_MODIS`",
-          "to get the parameter file."
-        )
-      }
     }
   } ## end loop over PFTS
+  toc("update_params_from_traits", t_param)
   ####### end parameter update
+
+  t_state_inputs <- tic()
   #working on reading soil file
   if (length(settings$run$inputs$soil_physics$path) > 0) {
     template.soil_physics <- settings$run$inputs$soil_physics$path  ## read from settings
@@ -574,7 +677,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
           soilWHC_total <- sum(unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])*thickness)
           if (thickness[1]<=10) {
             #LitterWHC in cm, assuming the litter depth is within the top 10 cm
-            param[which(param[, 1] == "litterWHC"), 2] <- unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])[1]*thickness[1]
+            param[idx("litterWHC"), 2] <- unlist(soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"])[1]*thickness[1]
           }
         } else {
           #if no depth/thickness is provided
@@ -582,11 +685,11 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
           thickness <- 100 #assume the default soil depth is the plant rooting depth of 100 cm, or use the user-specified value
           soilWHC_total <- soil_IC_list$vals["volume_fraction_of_water_in_soil_at_saturation"]*thickness
         }
-        param[which(param[, 1] == "soilWHC"), 2] <- soilWHC_total
+        param[idx("soilWHC"), 2] <- soilWHC_total
       }
       if ("soil_hydraulic_conductivity_at_saturation" %in% names(soil_IC_list$vals)) {
          #litwaterDrainrate in cm/day
-         param[which(param[, 1] == "litWaterDrainRate"), 2] <- PEcAn.utils::ud_convert(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1], "m s-1", "cm day-1")
+         param[idx("litWaterDrainRate"), 2] <- PEcAn.utils::ud_convert(unlist(soil_IC_list$vals["soil_hydraulic_conductivity_at_saturation"])[1], "m s-1", "cm day-1")
        }
     }
   }
@@ -618,42 +721,42 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
             )
           )
         }
-      param[which(param[, 1] == "plantWoodInit"),  2] <- wood_total_C
-      param[which(param[, 1] == "coarseRootFrac"), 2] <- IC$coarseRootFrac
-      param[which(param[, 1] == "fineRootFrac"),   2] <- IC$fineRootFrac
+      param[idx("plantWoodInit"),  2] <- wood_total_C
+      param[idx("coarseRootFrac"), 2] <- IC$coarseRootFrac
+      param[idx("fineRootFrac"),   2] <- IC$fineRootFrac
     }
     ## laiInit m2/m2
     if ("lai" %in% ic.names) {
-      param[which(param[, 1] == "laiInit"), 2] <- IC$lai
+      param[idx("laiInit"), 2] <- IC$lai
     }
     ## litterInit gC/m2
     if ("litter_carbon_content" %in% ic.names) {
-      param[which(param[, 1] == "litterInit"), 2] <- IC$litter_carbon_content
+      param[idx("litterInit"), 2] <- IC$litter_carbon_content
     }
     ## soilInit gC/m2
     if ("soil" %in% ic.names) {
-      param[which(param[, 1] == "soilInit"), 2] <- IC$soil
+      param[idx("soilInit"), 2] <- IC$soil
     }
     ## litterWFracInit fraction
     if ("litter_mass_content_of_water" %in% ic.names) {
       #here we use litterWaterContent/litterWHC to calculate the litterWFracInit
-      param[which(param[, 1] == "litterWFracInit"), 2] <- IC$litter_mass_content_of_water/(param[which(param[, 1] == "litterWHC"), 2]*10)
+      param[idx("litterWFracInit"), 2] <- IC$litter_mass_content_of_water/(param[idx("litterWHC"), 2]*10)
     }
     ## soilWater IC$soilWater is in kg/m2, and soilWHC is in cm
     if ("soilWater" %in% ic.names) {
-      param[which(param[, 1] == "soilWFracInit"), 2] <- IC$soilWater/(param[which(param[, 1] == "soilWHC"), 2]*10)
+      param[idx("soilWFracInit"), 2] <- IC$soilWater/(param[idx("soilWHC"), 2]*10)
     }
     ## soilWFracInit fraction
     if ("soilWFrac" %in% ic.names) {
-      param[which(param[, 1] == "soilWFracInit"), 2] <- IC$soilWFrac
+      param[idx("soilWFracInit"), 2] <- IC$soilWFrac
     }
     ## snowInit cm water equivalent
     if ("SWE" %in% ic.names) {
-      param[which(param[, 1] == "snowInit"), 2] <- IC$SWE
+      param[idx("snowInit"), 2] <- IC$SWE
     }
     ## microbeInit mgC/g soil
     if ("microbe" %in% ic.names) {
-      param[which(param[, 1] == "microbeInit"), 2] <- IC$microbe
+      param[idx("microbeInit"), 2] <- IC$microbe
     }
 
   } else if (length(settings$run$inputs$poolinitcond$path) > 0) {
@@ -688,15 +791,15 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
 
       ## plantWoodInit gC/m2
       if ("wood" %in% names(IC.pools)) {
-        fineRootFrac <- param[which(param[,1] == "fineRootFrac"),2]
-        coarseRootFrac <- param[which(param[,1] == "coarseRootFrac"),2]
+        fineRootFrac <- param[idx("fineRootFrac"),2]
+        coarseRootFrac <- param[idx("coarseRootFrac"),2]
         # accounts for the fact that SIPNET take plantWoodInit as all woods (including roots).
-        param[which(param[, 1] == "plantWoodInit"), 2] <- PEcAn.utils::ud_convert(IC.pools$wood, "kg m-2", "g m-2")/(1-fineRootFrac-coarseRootFrac)
+        param[idx("plantWoodInit"), 2] <- PEcAn.utils::ud_convert(IC.pools$wood, "kg m-2", "g m-2")/(1-fineRootFrac-coarseRootFrac)
       }
       ## laiInit m2/m2
       lai <- IC.pools$LAI
       if (!is.na(lai) && is.numeric(lai)) {
-        param[param[, 1] == "laiInit", 2] <- lai
+        param[idx("laiInit"), 2] <- lai
       }
 
       # Sipnet always starts from initial LAI whether day 0 is in or out of the
@@ -708,40 +811,40 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
       # - the PFT sets leafOnDay/leafOffday as traits.
       # So unless you set something different, it's probably using DOY 144/285
       # ==> leaves are on from late May through mid-October.
-      is_deciduous_pft <- isTRUE(param[param[, 1] == "fracLeafFall", 2] > 0.5)
+      is_deciduous_pft <- isTRUE(param[idx("fracLeafFall"), 2] > 0.5)
       start_day <- lubridate::yday(settings$run$start.date)
       starts_with_leaves <- (
-        start_day >= param[param[, 1] == "leafOnDay", 2]
-        && start_day <= param[param[, 1] == "leafOffDay", 2]
+        start_day >= param[idx("leafOnDay"), 2]
+        && start_day <= param[idx("leafOffDay"), 2]
       )
       if (is_deciduous_pft && !starts_with_leaves) {
         # Note that this doesn't adjust for winter LAI of evergreens!
         # Could consider using LAI*fracLeafFall,
         # But that strongly assumes that IC LAI is both (1) reported at
         # season peak and not (2) adjusted by any earlier step (i.e. SDA).
-        param[param[, 1] == "laiInit", 2] <- 0
+        param[idx("laiInit"), 2] <- 0
       }
 
       ## neeInit gC/m2
       if (ic_has_ncvars[["nee"]]) {
         nee <- ncdf4::ncvar_get(IC.nc, "nee")
         if (!is.na(nee) && is.numeric(nee)) {
-          param[param[, 1] == "neeInit", 2] <- nee
+          param[idx("neeInit"), 2] <- nee
         }
       }
       ## litterInit gC/m2
       if ("litter" %in% names(IC.pools)) {
-        param[param[, 1] == "litterInit", 2] <- PEcAn.utils::ud_convert(IC.pools$litter, "g m-2", "g m-2") # BETY: kgC m-2
+        param[idx("litterInit"), 2] <- PEcAn.utils::ud_convert(IC.pools$litter, "g m-2", "g m-2") # BETY: kgC m-2
       }
       ## soilInit gC/m2
       if ("soil" %in% names(IC.pools)) {
-        param[param[, 1] == "soilInit", 2] <- PEcAn.utils::ud_convert(sum(IC.pools$soil), "kg m-2", "g m-2") # BETY: kgC m-2
+        param[idx("soilInit"), 2] <- PEcAn.utils::ud_convert(sum(IC.pools$soil), "kg m-2", "g m-2") # BETY: kgC m-2
       }
       ## soilWFracInit fraction
       if (ic_has_ncvars[["SoilMoistFrac"]]) {
         soilWFrac <- ncdf4::ncvar_get(IC.nc, "SoilMoistFrac")
         if (!is.na(soilWFrac) && is.numeric(soilWFrac)) {
-          param[param[, 1] == "soilWFracInit", 2] <- sum(soilWFrac) / 100
+          param[idx("soilWFracInit"), 2] <- sum(soilWFrac) / 100
           ## litterWFracInit fraction
           litterWFrac <- soilWFrac
         }
@@ -752,27 +855,27 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
       if (ic_has_ncvars[["SWE"]]) {
         snow <- ncdf4::ncvar_get(IC.nc, "SWE")
         if (!is.na(snow) && is.numeric(snow)) {
-          param[param[, 1] == "snowInit", 2] <- PEcAn.utils::ud_convert(snow, "kg m-2", "g cm-2")  # BETY: kg m-2
+          param[idx("snowInit"), 2] <- PEcAn.utils::ud_convert(snow, "kg m-2", "g cm-2")  # BETY: kg m-2
         }
       }
       ## leafOnDay
       if (ic_has_ncvars[["date_of_budburst"]]) {
         leafOnDay <- ncdf4::ncvar_get(IC.nc, "date_of_budburst")
         if (!is.na(leafOnDay) && is.numeric(leafOnDay)) {
-          param[param[, 1] == "leafOnDay", 2] <- leafOnDay
+          param[idx("leafOnDay"), 2] <- leafOnDay
         }
       }
       ## leafOffDay
       if (ic_has_ncvars[["date_of_senescence"]]) {
         leafOffDay <- ncdf4::ncvar_get(IC.nc, "date_of_senescence")
         if (!is.na(leafOffDay) && is.numeric(leafOffDay)) {
-          param[param[, 1] == "leafOffDay", 2] <- leafOffDay
+          param[idx("leafOffDay"), 2] <- leafOffDay
         }
       }
       if (ic_has_ncvars[["Microbial Biomass C"]]) {
         microbe <- ncdf4::ncvar_get(IC.nc, "Microbial Biomass C")
         if (!is.na(microbe) && is.numeric(microbe)) {
-          param[param[, 1] == "microbeInit", 2] <- PEcAn.utils::ud_convert(microbe, "mg kg-1", "mg g-1") #BETY: mg microbial C kg-1 soil
+          param[idx("microbeInit"), 2] <- PEcAn.utils::ud_convert(microbe, "mg kg-1", "mg g-1") #BETY: mg microbial C kg-1 soil
         }
       }
 
@@ -791,10 +894,11 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
       soil.path <- settings$run$inputs$soilmoisture$path
       soilWFrac <- ncdf4::ncvar_get(ncdf4::nc_open(soil.path), varid = "mass_fraction_of_unfrozen_water_in_soil_moisture")
 
-      param[which(param[, 1] == "soilWFracInit"), 2] <- soilWFrac
+      param[idx("soilWFracInit"), 2] <- soilWFrac
     }
 
   }
+  toc("apply_state_and_soil_inputs", t_state_inputs)
   if (file.exists(file.path(settings$rundir, run.id, "sipnet.param"))) {
     file.rename(
       file.path(settings$rundir, run.id, "sipnet.param"),
@@ -814,6 +918,7 @@ write.config.SIPNET <- function(defaults, trait.values, settings, run.id, inputs
     col.names = FALSE,
     quote = FALSE
   )
+  toc("write_config_total", t_main)
 } # write.config.SIPNET
 
 
