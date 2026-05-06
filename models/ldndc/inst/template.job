@@ -10,15 +10,51 @@ exec &> "@OUTDIR@/logfile.txt"
 # create output folder
 mkdir -p "@OUTDIR@"
 
+LDNDC_BINARY="@BINARY@"
+LDNDC_PROJECT="@PROJECT@"
+LDNDC_ROOT="@BINARY_ROOT@"
+LDNDC_CONFIG="@RUNDIR@/ldndc.conf"
+
+if [ ! -x "$LDNDC_BINARY" ]; then
+  echo -e "ERROR IN MODEL RUN\nMissing executable: $LDNDC_BINARY" >&3
+  exit 1
+fi
+
+if [ ! -d "$LDNDC_ROOT/dotfiles" ]; then
+  echo -e "ERROR IN MODEL RUN\nMissing LDNDC runtime support files under: $LDNDC_ROOT" >&3
+  exit 1
+fi
+
 cd "@RUNDIR@"
-ln -s "@METPATH@" climate.txt
+ln -sf "@METPATH@" climate.txt
+
+cat > "$LDNDC_CONFIG" <<EOF
+[global]
+log_file = "./ldndc.log"
+log_level = "warn"
+resources_path = "$LDNDC_ROOT"
+udunits_path = "$LDNDC_ROOT/dotfiles"
+service_registry_url = "$LDNDC_ROOT/dotfiles/service-registry.json"
+input_path = "."
+output_path = "."
+balance_check = "yes"
+balance_tolerance = "1.0e-09"
+random_seed = "1"
+
+[output:*]
+write_year = true
+write_yearday = true
+write_datetime = true
+write_xyz = true
+write_area = true
+EOF
 
 
 # see if application needs running
 if [ ! -e "@OUTDIR@/Output" ]; then
   cd "@RUNDIR@"
   
-  @BINARY@
+  "$LDNDC_BINARY" -c "$LDNDC_CONFIG" "$LDNDC_PROJECT"
   STATUS=$?
   
   # check the status
@@ -28,13 +64,13 @@ if [ ! -e "@OUTDIR@/Output" ]; then
   fi
 
   # convert to MsTMIP
-  echo "require (PEcAn.LDNDC)
-model2netcdf.LDNDC('@OUTDIR@', @SITE_LAT@, @SITE_LON@, '@START_DATE@', '@END_DATE@', '@DELETE_RAW@')
-" | R --vanilla
+  Rscript -e "PEcAn.LDNDC::model2netcdf.LDNDC('@OUTDIR@', @SITE_LAT@, @SITE_LON@, '@START_DATE@', '@END_DATE@', @DELETE_RAW@)"
 fi
 
-# copy readme with specs to output
-cp  "@RUNDIR@/README.txt" "@OUTDIR@/README.txt"
+# copy readme with specs to output when present
+if [ -e "@RUNDIR@/README.txt" ]; then
+  cp "@RUNDIR@/README.txt" "@OUTDIR@/README.txt"
+fi
 
 # run getdata to extract right variables
 

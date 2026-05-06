@@ -19,7 +19,8 @@ Imports:
     readr,
     rlang
 Suggests:
-    testthat (>= 1.0.2)
+    testthat (>= 1.0.2),
+    withr
 SystemRequirements: LDNDC
 OS_type: unix
 License: BSD_3_clause + file LICENSE

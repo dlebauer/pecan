@@ -122,9 +122,17 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   jobsh <- gsub("@OUTDIR@", outdir, jobsh)
   jobsh <- gsub("@RUNDIR@", rundir, jobsh)
   jobsh <- gsub("@METPATH@", MetPath, jobsh)
-  
-  # LDNDC binaries in this server are located here. This binary also points to model own configurations.
-  jobsh <- gsub("@BINARY@", paste(settings$model$binary, paste0(rundir, "/project.ldndc")), jobsh)
+
+  if (!file.exists(settings$model$binary)) {
+    PEcAn.logger::logger.severe("LDNDC executable not found at ", settings$model$binary)
+  }
+
+  binary_path <- normalizePath(settings$model$binary, winslash = "/", mustWork = FALSE)
+  binary_root <- dirname(dirname(binary_path))
+
+  jobsh <- gsub("@BINARY@", binary_path, jobsh, fixed = TRUE)
+  jobsh <- gsub("@PROJECT@", file.path(rundir, "project.ldndc"), jobsh, fixed = TRUE)
+  jobsh <- gsub("@BINARY_ROOT@", binary_root, jobsh, fixed = TRUE)
   
   if(is.null(settings$model$delete.raw)){
     settings$model$delete.raw <- FALSE
@@ -1791,6 +1799,15 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   
   ## Soil layers, if not external files are given
   if(is.null(settings$run$inputs$poolinitcond$path)){
+    if(any(grepl("@Info_Use_History@", sitefile))){
+      sitefile <- gsub("@Info_Use_History@", "'arable'", sitefile)
+    }
+    if(any(grepl("@Soil_Type@", sitefile))){
+      sitefile <- gsub("@Soil_Type@", "'SALO'", sitefile)
+    }
+    if(any(grepl("@Litter_Height@", sitefile))){
+      sitefile <- gsub("@Litter_Height@", "'0.0'", sitefile)
+    }
     
     # Set different layers, which will be used based on the soil data that is available
     # For example, if we have soil data for top layer, then that will be used instead of soil_layer_1
@@ -1803,6 +1820,7 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
     soil_layer[7] <- '<layer depth="100" bd="1.00"  clay="0.02" corg="0.0050"  norg="0.000219" ph="7" vangenuchten_n ="1.3" vangenuchten_alpha ="1.9"  sand="0.05"  scel="0.005" sks="0.00004000" />'
     
     soil_layer_values <- paste(soil_layer, collapse = "\n \t")
+    soil_combine <- soil_layer_values
   }
   
 
