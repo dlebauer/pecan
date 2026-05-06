@@ -5,7 +5,7 @@ Version: 1.0.3.9000
 Authors@R: c(person("Henri", "Kajasilta", role = c("aut", "cre"),
                     email = "henri.kajasilta@fmi.fi"),
              person("David", "LeBauer", role = c("aut"),
-                    email = "dlebauer@email.arizona.edu"))
+                    email = "dlebauer@gmail.com"))
 Description: This module provides functions to link the (LDNDC) to PEcAn.
 URL: https://pecanproject.github.io
 BugReports: https://github.com/PecanProject/pecan/issues
