@@ -1,0 +1,545 @@
+---
+title: "Getting Started with LDNDC in PEcAn"
+format:
+  html:
+    toc: true
+    code-fold: false
+execute:
+  echo: true
+  warning: true
+  message: true
+---
+
+## Purpose
+
+This tutorial is for **LDNDC users who have already completed Demo 1** in
+`documentation/tutorials/Demo_1_Basic_Run/` and now want to learn the
+LDNDC-specific PEcAn workflow.
+
+Demo 1 covers the general PEcAn workflow. This tutorial focuses on what is
+different for LDNDC:
+
+- LDNDC is an external runtime, not just an R package
+- PEcAn writes model-specific XML, text, and job files for LDNDC
+- climate drivers are converted with `PEcAn.LDNDC::met2model.LDNDC()`
+- raw LDNDC text outputs are converted to yearly netCDF with
+  `PEcAn.LDNDC::model2netcdf.LDNDC()`
+
+The worked example uses the currently validated grassland/meadow path and is
+organized around the three LDNDC-specific coupler functions:
+
+1. `PEcAn.LDNDC::met2model.LDNDC()`
+2. `PEcAn.LDNDC::write.config.LDNDC()`
+3. `PEcAn.LDNDC::model2netcdf.LDNDC()`
+
+```{r}
+ldndc_pkg_root <- here::here()
+repo_root <- normalizePath(file.path(ldndc_pkg_root, "..", ".."))
+
+run_cmd <- function(cmd, args = character(), wd = repo_root, env = character(), allow_fail = FALSE) {
+  out <- withr::with_dir(
+    wd,
+    system2(cmd, args, stdout = TRUE, stderr = TRUE, env = env)
+  )
+  status <- attr(out, "status")
+  if (is.null(status)) {
+    status <- 0L
+  }
+
+  cat("$", paste(c(cmd, args), collapse = " "), "\n")
+  if (length(out)) {
+    cat(paste(out, collapse = "\n"), "\n")
+  }
+
+  if (!allow_fail && !identical(status, 0L)) {
+    stop(sprintf("Command failed with status %s: %s", status, cmd), call. = FALSE)
+  }
+
+  invisible(list(status = status, output = out))
+}
+
+preview_file <- function(path, n = 12) {
+  cat(paste(utils::head(readLines(path), n), collapse = "\n"), "\n")
+}
+
+write_ldndc_met_fixture <- function(target_dir) {
+  source_file <- file.path(repo_root, "models", "basgra", "tests", "testthat", "test.met.2019.nc")
+  target_file <- file.path(target_dir, "ldndc.met.2019.nc")
+  file.copy(source_file, target_file, overwrite = TRUE)
+
+  nc <- ncdf4::nc_open(target_file, write = TRUE)
+  on.exit(ncdf4::nc_close(nc), add = TRUE)
+
+  air_temperature <- ncdf4::ncvar_get(nc, "air_temperature")
+  dims <- nc[["var"]][["air_temperature"]][["dim"]]
+
+  nc <- ncdf4::ncvar_add(
+    nc,
+    ncdf4::ncvar_def("air_pressure", "Pa", dim = dims, missval = -9999)
+  )
+  nc <- ncdf4::ncvar_add(
+    nc,
+    ncdf4::ncvar_def(
+      "water_vapor_saturation_deficit",
+      "Pa",
+      dim = dims,
+      missval = -9999
+    )
+  )
+
+  ncdf4::ncvar_put(
+    nc,
+    "air_pressure",
+    array(101325, dim = dim(air_temperature))
+  )
+  ncdf4::ncvar_put(
+    nc,
+    "water_vapor_saturation_deficit",
+    array(500, dim = dim(air_temperature))
+  )
+
+  target_file
+}
+
+write_tutorial_events <- function(events_path, start_date = "2019-01-01") {
+  # TODO: add an LDNDC-specific PEcAn events.json -> events.txt translator
+  # to the workflow and replace this tutorial helper once it exists.
+  writeLines(
+    c(
+      "<?xml version=\"1.0\"?>",
+      "<ldndcevent>",
+      paste0("  <global time=\"", start_date, "\" />"),
+      "  <event id=\"0\">",
+      paste0("    <event type=\"plant\" time=\"", start_date, "\">"),
+      "      <plant name=\"PERG\" type=\"PERG\">",
+      "        <grass initialbiomass=\"500.0\" />",
+      "      </plant>",
+      "    </event>",
+      "  </event>",
+      "</ldndcevent>"
+    ),
+    events_path
+  )
+}
+
+local_archive_name <- "ldndc-1.37.mac64.2026-03-03.tar.bz2"
+public_archive_url <- paste0(
+  "https://ldndc.imk-ifu.kit.edu/ldndc/downloads/public/packages/",
+  "mac64/ldndc-1.37.mac64.2026-03-03.tar.bz2"
+)
+archive_cache_dir <- file.path(repo_root, "models", "ldndc", "vignettes", "local-assets")
+dir.create(archive_cache_dir, recursive = TRUE, showWarnings = FALSE)
+ldndc_archive <- file.path(archive_cache_dir, local_archive_name)
+
+if (!file.exists(ldndc_archive)) {
+  run_cmd("curl", c("-fL", public_archive_url, "-o", ldndc_archive))
+}
+
+tutorial_root <- withr::local_tempdir(pattern = "ldndc-getting-started-")
+tutorial_r_lib <- file.path(tutorial_root, "Rlib")
+dir.create(tutorial_r_lib)
+```
+
+## 1) Positioning and prerequisites
+
+Before working through this tutorial, complete Demo 1:
+`documentation/tutorials/Demo_1_Basic_Run/run_pecan.qmd`.
+
+This tutorial assumes you already understand:
+
+- what a `pecan.xml` file does
+- how PEcAn settings are read and prepared
+- the difference between `run/` and `out/` directories in a PEcAn run
+
+This tutorial adds the LDNDC-specific pieces that Demo 1 does not cover.
+
+### Local requirements
+
+You will need:
+
+- `R`
+- `Rscript`
+- `quarto`
+- a local PEcAn checkout
+- a user-supplied LDNDC archive cached at
+  `models/ldndc/vignettes/local-assets/ldndc-1.37.mac64.2026-03-03.tar.bz2`
+  or internet access to download it from the public macOS package URL used in
+  this notebook
+
+The LDNDC binary and bundled example files may be downloaded from
+<https://ldndc.imk-ifu.kit.edu/download/download-model.php> and used under the
+terms of the [LDNDC license](https://ldndc.imk-ifu.kit.edu/about/license.php).
+
+```{sh}
+Rscript --version
+quarto --version
+```
+
+## 2) From Demo 1 to LDNDC
+
+Demo 1 used SIPNET. For LDNDC, the overall PEcAn idea is the same, but the
+model-specific pieces change:
+
+| Demo 1 / generic PEcAn | LDNDC-specific change |
+|---|---|
+| `model$type = SIPNET` | `model$type = LDNDC` |
+| model binary only | binary plus runtime support files |
+| generic model meteorology handling | climate text written by `met2model.LDNDC()` |
+| one model config file | generated `project.ldndc`, XML inputs, and `job.sh` |
+| model output read directly | raw LDNDC text converted by `model2netcdf.LDNDC()` |
+
+The `pecan.xml` shape still looks familiar. An LDNDC-oriented version of the
+Demo 1 model block would look more like this:
+
+```xml
+<model>
+  <type>LDNDC</type>
+  <binary>/path/to/ldndc/bin/ldndc</binary>
+  <delete.raw>FALSE</delete.raw>
+</model>
+
+<run>
+  <site>
+    <id>1</id>
+    <lat>46.56</lat>
+    <lon>11.03</lon>
+  </site>
+  <inputs>
+    <met>
+      <path>
+        <path1>/path/to/climate.txt</path1>
+      </path>
+    </met>
+    <events>
+      <path>
+        <path1>/path/to/events.xml</path1>
+      </path>
+    </events>
+  </inputs>
+  <start.date>2019/01/01</start.date>
+  <end.date>2019/01/03</end.date>
+</run>
+```
+
+This tutorial does not start from a full `pecan.xml`. Instead, it shows the
+LDNDC-specific coupler functions directly so you can see what PEcAn needs to
+generate for this model.
+
+## 3) Set up the local tutorial workspace
+
+We first extract the validated local runtime and install the current
+`PEcAn.LDNDC` package into a temporary library.
+
+```{r}
+run_cmd("tar", c("-xjf", ldndc_archive, "-C", tutorial_root))
+
+ldndc_root <- file.path(tutorial_root, "ldndc-1.37.mac64")
+run_cmd("xattr", c("-dr", "com.apple.quarantine", ldndc_root), allow_fail = TRUE)
+
+run_cmd(
+  file.path(R.home("bin"), "R"),
+  c("CMD", "INSTALL", "-l", tutorial_r_lib, file.path(repo_root, "models", "ldndc")),
+  env = "TMPDIR=/tmp"
+)
+
+withr::local_libpaths(c(tutorial_r_lib, .libPaths()))
+```
+
+## 4) `met2model.LDNDC`: create LDNDC climate input
+
+`PEcAn.LDNDC::met2model.LDNDC()` converts PEcAn meteorology into the climate text
+format expected by LDNDC.
+
+For this tutorial we use the strict fixture that was validated during the local
+audit. It starts from the repository's Basgra meteorology test file and adds the
+two variables LDNDC needs here: `air_pressure` and
+`water_vapor_saturation_deficit`.
+
+```{r}
+met_dir <- file.path(tutorial_root, "met")
+dir.create(met_dir)
+
+met_fixture <- write_ldndc_met_fixture(met_dir)
+
+run_root <- file.path(tutorial_root, "run")
+out_root <- file.path(tutorial_root, "out")
+dir.create(run_root)
+dir.create(out_root)
+
+run_id <- "TUTORIAL-RUN"
+dir.create(file.path(run_root, run_id), recursive = TRUE)
+dir.create(file.path(out_root, run_id), recursive = TRUE)
+
+met_result <- PEcAn.LDNDC::met2model.LDNDC(
+  in.path = met_dir,
+  in.prefix = "ldndc.met",
+  outfolder = file.path(run_root, run_id),
+  start_date = "2019-01-01",
+  end_date = "2019-01-03"
+)
+
+climate_file <- met_result$file[[1]]
+climate_file
+```
+
+This is the file that will later be linked into the generated LDNDC run
+directory as `climate.txt`.
+
+```{r}
+preview_file(climate_file, n = 10)
+```
+
+## 5) `write.config.LDNDC`: generate the runnable LDNDC project
+
+`PEcAn.LDNDC::write.config.LDNDC()` writes the model-specific files PEcAn needs
+to run LDNDC. For this minimal example we provide:
+
+- the LDNDC binary path
+- site latitude and longitude
+- the climate file produced by `met2model.LDNDC()`
+- a minimal planting event file
+- a meadow PFT
+
+```{r}
+events_path <- file.path(run_root, run_id, "events.xml")
+write_tutorial_events(events_path, start_date = "2019-01-01")
+
+settings <- list(
+  host = list(
+    rundir = run_root,
+    outdir = out_root
+  ),
+  rundir = run_root,
+  model = list(
+    binary = file.path(ldndc_root, "bin", "ldndc"),
+    delete.raw = FALSE
+  ),
+  run = list(
+    start.date = "2019-01-01",
+    end.date = "2019-01-03",
+    site = list(
+      id = 1,
+      lat = 46.56,
+      lon = 11.03
+    ),
+    inputs = list(
+      met = list(path = climate_file),
+      events = list(path1 = events_path),
+      airchemistry = list(path1 = NULL),
+      poolinitcond = list(path = NULL),
+      groundwater = list(path1 = NULL)
+    )
+  ),
+  pfts = list(list(name = "meadow"))
+)
+
+trait_values <- list(meadow = list())
+
+PEcAn.LDNDC::write.config.LDNDC(
+  defaults = NULL,
+  trait.values = trait_values,
+  settings = settings,
+  run.id = run_id
+)
+
+generated_rundir <- file.path(run_root, run_id)
+sort(list.files(generated_rundir))
+```
+
+These generated files are the core of the LDNDC PEcAn run directory.
+
+### `project.ldndc`
+
+```{r}
+preview_file(file.path(generated_rundir, "project.ldndc"), n = 20)
+```
+
+### `setup.xml`
+
+```{r}
+preview_file(file.path(generated_rundir, "setup.xml"), n = 20)
+```
+
+### `site.xml`
+
+```{r}
+preview_file(file.path(generated_rundir, "site.xml"), n = 16)
+```
+
+### `speciesparameters.xml`
+
+```{r}
+preview_file(file.path(generated_rundir, "speciesparameters.xml"), n = 16)
+```
+
+### `siteparameters.xml`
+
+```{r}
+preview_file(file.path(generated_rundir, "siteparameters.xml"), n = 16)
+```
+
+### `job.sh`
+
+```{r}
+preview_file(file.path(generated_rundir, "job.sh"), n = 24)
+```
+
+At this stage, the main PEcAn-to-LDNDC configuration work is done. The generated
+`job.sh` is the operational bridge between PEcAn and the external LDNDC runtime.
+
+## 6) Execute the generated run
+
+The generated job script runs LDNDC and then calls
+`PEcAn.LDNDC::model2netcdf.LDNDC()` on the raw outputs. In this tutorial we set
+`R_LIBS` explicitly so the launched `Rscript` resolves the temporary package
+install we just created.
+
+```{r}
+job_path <- file.path(generated_rundir, "job.sh")
+
+run_cmd(
+  "sh",
+  job_path,
+  env = c(
+    paste0("R_LIBS=", tutorial_r_lib),
+    "TMPDIR=/tmp"
+  )
+)
+
+generated_outdir <- file.path(out_root, run_id)
+log_file <- file.path(generated_outdir, "logfile.txt")
+raw_output_dir <- file.path(generated_outdir, "Output")
+
+sort(list.files(raw_output_dir))
+```
+
+The model log is useful when a run fails or when you want to confirm which step
+completed.
+
+```{r}
+preview_file(log_file, n = 12)
+```
+
+## 7) `model2netcdf.LDNDC`: convert raw output to PEcAn netCDF
+
+The generated job already called `model2netcdf.LDNDC()`, but it is helpful to
+run the converter explicitly once so you can see its inputs and outputs.
+
+It consumes raw text files such as:
+
+- `physiology-subdaily.txt`
+- `soilchemistry-subdaily.txt`
+- `watercycle-subdaily.txt`
+- `report-harvest.txt`
+- `report-cut.txt`
+
+To make the conversion step visible, we remove the existing yearly netCDF file
+and recreate it directly.
+
+```{r}
+nc_path <- file.path(generated_outdir, "2019.nc")
+if (file.exists(nc_path)) {
+  unlink(nc_path)
+}
+
+PEcAn.LDNDC::model2netcdf.LDNDC(
+  outdir = generated_outdir,
+  sitelat = settings$run$site$lat,
+  sitelon = settings$run$site$lon,
+  start_date = settings$run$start.date,
+  end_date = settings$run$end.date,
+  delete.raw = FALSE
+)
+
+file.exists(nc_path)
+```
+
+You should now have a yearly netCDF file in PEcAn's expected output location.
+
+```{r}
+nc <- ncdf4::nc_open(nc_path)
+on.exit(ncdf4::nc_close(nc), add = TRUE)
+
+names(nc$var)
+```
+
+## 8) End-to-end summary
+
+The runnable path in this tutorial is:
+
+1. `PEcAn.LDNDC::met2model.LDNDC()` writes an LDNDC climate text file
+2. `PEcAn.LDNDC::write.config.LDNDC()` writes the runnable LDNDC project files
+3. the generated `job.sh` launches the LDNDC runtime
+4. `PEcAn.LDNDC::model2netcdf.LDNDC()` converts raw text output to yearly netCDF
+
+In other words:
+
+- PEcAn prepares the model-specific inputs
+- LDNDC runs externally
+- PEcAn standardizes the outputs again for downstream analysis
+
+## 9) Demo 1 bridge: how this maps back into PEcAn
+
+If you return to a full `pecan.xml` workflow after this tutorial, the main
+question is not whether PEcAn changes, but **which parts are generic PEcAn and
+which parts are LDNDC-specific**.
+
+Generic PEcAn pieces from Demo 1 that still apply:
+
+- the overall role of `pecan.xml`
+- PEcAn settings preparation and validation
+- host, site, and output-directory concepts
+- downstream use of standardized netCDF outputs
+
+LDNDC-specific pieces introduced here:
+
+- `model$type = LDNDC`
+- a valid LDNDC runtime under `settings$model$binary`
+- climate input generated for the LDNDC text format
+- generated LDNDC XML and text inputs in the run directory
+- post-processing from raw LDNDC text output to yearly netCDF
+
+When you move from this tutorial back to a full PEcAn workflow, the easiest way
+to think about it is:
+
+- Demo 1 teaches the PEcAn workflow shell
+- this tutorial teaches the LDNDC-specific pieces that fill that shell
+
+## 10) Troubleshooting
+
+### macOS says the LDNDC binary cannot be opened
+
+If Gatekeeper blocks the extracted binary, remove the quarantine attribute:
+
+```bash
+xattr -dr com.apple.quarantine /path/to/ldndc-1.37.mac64
+```
+
+### `job.sh` cannot find the runtime support files
+
+Make sure `settings$model$binary` points to the extracted LDNDC binary under a
+runtime tree that also contains `dotfiles/`.
+
+### `Rscript` cannot load `PEcAn.LDNDC`
+
+In isolated environments, set `R_LIBS` when you launch the generated job so the
+script can find the installed package library.
+
+### The archive cache is empty
+
+Place the LDNDC archive at:
+
+`models/ldndc/vignettes/local-assets/ldndc-1.37.mac64.2026-03-03.tar.bz2`
+
+or let this notebook download it from the public macOS package URL.
+
+## Key artifacts
+
+```{r}
+cat("Archive source:", ldndc_archive, "\n")
+cat("Tutorial workspace:", tutorial_root, "\n")
+cat("Climate file:", climate_file, "\n")
+cat("Generated run directory:", generated_rundir, "\n")
+cat("Raw output directory:", raw_output_dir, "\n")
+cat("NetCDF output:", nc_path, "\n")
+```

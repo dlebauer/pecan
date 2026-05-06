@@ -5,10 +5,7 @@ write_ldndc_met_fixture <- function(target_dir) {
     "..", "..", "..", "basgra", "tests", "testthat", "test.met.2019.nc"
   )
   target_file <- file.path(target_dir, "ldndc.met.2019.nc")
-  copied <- file.copy(source_file, target_file, overwrite = TRUE)
-  if (!copied) {
-    stop("Failed to copy met fixture to ", target_file, call. = FALSE)
-  }
+  file.copy(source_file, target_file, overwrite = TRUE)
 
   nc <- ncdf4::nc_open(target_file, write = TRUE)
   on.exit(ncdf4::nc_close(nc), add = TRUE)
