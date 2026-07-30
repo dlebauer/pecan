@@ -1,0 +1,206 @@
+---
+title: "Getting Started with LDNDC in PEcAn"
+format:
+  html:
+    toc: true
+    code-fold: false
+execute:
+  echo: true
+  warning: true
+  message: true
+---
+
+## Purpose
+
+This tutorial is for LDNDC users who have already completed Demo 1 in
+`documentation/tutorials/Demo_1_Basic_Run/` and now want to run an LDNDC example
+through the PEcAn model-coupler workflow.
+
+- LDNDC is a model coupled to PEcAn; the binary is downloaded from the
+  [LandscapeDNDC binary distributions](https://ldndc.imk-ifu.kit.edu/download/download-model.php)
+  page.
+- `PEcAn.LDNDC::met2model.LDNDC()` converts PEcAn meteorology into LDNDC climate input.
+- `PEcAn.LDNDC::write.config.LDNDC()` writes the LDNDC project files and `job.sh`.
+- `PEcAn.LDNDC::model2netcdf.LDNDC()` converts raw LDNDC output to PEcAn-standard yearly NetCDF.
+
+The worked example is based on the grassland/meadow example provided with the
+LDNDC binary download and uses package fixtures derived from that example.
+
+```{mermaid}
+flowchart LR
+  A["PEcAn met NetCDF"] --> B["met2model.LDNDC()"]
+  B --> C["LDNDC climate input"]
+  C --> D["write.config.LDNDC()"]
+  D --> E["LDNDC project files"]
+  E --> F["LDNDC binary"]
+  F --> G["raw LDNDC output"]
+  G --> H["model2netcdf.LDNDC()"]
+  H --> I["yearly PEcAn NetCDF"]
+```
+
+## 1) Read the PEcAn settings
+
+The example settings follow the same PEcAn directory pattern as Demo 1: `outdir`
+contains the workflow output, `run/` contains model configuration files, and
+`out/` contains model outputs.
+
+```{r}
+example_dir <- system.file("extdata", "DE_graswang", package = "PEcAn.LDNDC")
+settings_path <- file.path(example_dir, "pecan.xml")
+
+settings <- PEcAn.settings::read.settings(settings_path)
+settings <- PEcAn.settings::prepare.settings(settings)
+
+run_id <- "LDNDC-DE-GRASWANG"
+dir.create(file.path(settings$rundir, run_id), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(settings$modeloutdir, run_id), recursive = TRUE, showWarnings = FALSE)
+
+settings$host$rundir <- settings$rundir
+settings$host$outdir <- settings$modeloutdir
+
+ldndc_binary <- Sys.getenv("LDNDC_BINARY", unset = "")
+if (nzchar(ldndc_binary)) {
+  settings$model$binary <- ldndc_binary
+}
+settings$model$binary
+```
+
+If the binary is not already present at `settings$model$binary`, install it under
+the PEcAn output directory and update the setting:
+
+```{r, eval=FALSE}
+ldndc_runtime <- PEcAn.LDNDC::download.LDNDC(
+  location = file.path(settings$outdir, "ldndc")
+)
+settings$model$binary <- ldndc_runtime$binary
+```
+
+## 2) Convert meteorology with `met2model.LDNDC()`
+
+The package fixture `ldndc.met.2019.nc` is a PEcAn-standard meteorology file.
+`met2model.LDNDC()` writes the climate text file that LDNDC reads.
+
+```{r}
+met_result <- PEcAn.LDNDC::met2model.LDNDC(
+  in.path = example_dir,
+  in.prefix = "ldndc.met",
+  outfolder = file.path(settings$rundir, run_id),
+  start_date = settings$run$start.date,
+  end_date = settings$run$end.date
+)
+
+settings$run$inputs$met$path <- met_result$file[[1]]
+readLines(settings$run$inputs$met$path, n = 12)
+```
+
+## 3) Write LDNDC configuration with `write.config.LDNDC()`
+
+The event, setup, site, site-parameter, and species-parameter files are fixtures
+based on the grassland/meadow example bundled with LDNDC. PEcAn copies them into
+the run directory and writes the generated launcher.
+
+```{r}
+settings$run$inputs$events$path1 <- file.path(example_dir, "events.xml")
+settings$run$inputs$setup$path1 <- file.path(example_dir, "setup.xml")
+settings$run$inputs$site$path1 <- file.path(example_dir, "site.xml")
+settings$run$inputs$siteparameters$path1 <- file.path(example_dir, "siteparameters.xml")
+settings$run$inputs$speciesparameters$path1 <- file.path(example_dir, "speciesparameters.xml")
+settings$run$inputs$airchemistry$path1 <- file.path(example_dir, "airchemistry.txt")
+
+trait_values <- readRDS(file.path(example_dir, "trait_values.rds"))
+
+PEcAn.LDNDC::write.config.LDNDC(
+  defaults = NULL,
+  trait.values = trait_values,
+  settings = settings,
+  run.id = run_id
+)
+
+run_dir <- file.path(settings$rundir, run_id)
+sort(list.files(run_dir))
+```
+
+The generated `project.ldndc` is the LDNDC project file, and `job.sh` is the
+script PEcAn uses to run the model.
+
+```{r}
+readLines(file.path(run_dir, "project.ldndc"), n = 18)
+readLines(file.path(run_dir, "job.sh"), n = 24)
+```
+
+## 4) Execute the generated run
+
+`job.sh` launches LDNDC and calls `model2netcdf.LDNDC()` after the raw model
+output is available.
+
+```{r}
+if (!file.exists(settings$model$binary)) {
+  PEcAn.logger::logger.severe(
+    "LDNDC binary not found at settings$model$binary. Run download.LDNDC() first."
+  )
+}
+
+job_status <- system2("sh", file.path(run_dir, "job.sh"))
+if (!identical(job_status, 0L)) {
+  PEcAn.logger::logger.severe("LDNDC job failed; see the run logfile.")
+}
+
+out_dir <- file.path(settings$modeloutdir, run_id)
+sort(list.files(out_dir))
+```
+
+## 5) Check PEcAn-standard output
+
+The generated job normally creates the yearly NetCDF file. If raw output exists
+but the NetCDF is missing, run the converter directly.
+
+```{r}
+nc_path <- file.path(out_dir, "2019.nc")
+if (!file.exists(nc_path)) {
+  PEcAn.LDNDC::model2netcdf.LDNDC(
+    outdir = out_dir,
+    sitelat = settings$run$site$lat,
+    sitelon = settings$run$site$lon,
+    start_date = settings$run$start.date,
+    end_date = settings$run$end.date,
+    delete.raw = FALSE
+  )
+}
+
+file.exists(nc_path)
+```
+
+Read the PEcAn-standard output and plot a small set of variables.
+
+```{r}
+model_output <- PEcAn.utils::read.output(
+  runid = run_id,
+  outdir = out_dir,
+  start.year = 2019,
+  end.year = 2019,
+  variables = c("LAI", "GPP", "NPP"),
+  dataframe = TRUE,
+  verbose = FALSE
+)
+
+plot(
+  model_output$posix,
+  model_output$LAI,
+  type = "l",
+  xlab = "Date",
+  ylab = "LAI",
+  main = "LDNDC Grassland LAI"
+)
+```
+
+## Summary
+
+The LDNDC-specific PEcAn path is:
+
+1. `PEcAn.LDNDC::met2model.LDNDC()` writes LDNDC climate input.
+2. `PEcAn.LDNDC::write.config.LDNDC()` writes the LDNDC run files.
+3. The generated `job.sh` runs LDNDC.
+4. `PEcAn.LDNDC::model2netcdf.LDNDC()` writes yearly PEcAn NetCDF output.
+
+TODO: add an LDNDC-specific PEcAn events translator so the event fixture can be
+generated from PEcAn event data.

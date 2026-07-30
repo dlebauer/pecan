@@ -14,7 +14,7 @@
             <event  source="events.xml" />
             <speciesparameters  source="speciesparameters.xml" />
             <siteparameters source="siteparameters.xml" />
-            '@Groundwater@'
+            @Groundwater@
         </sources>    
     </input>
 
@@ -23,4 +23,3 @@
 	    <sinks sinkprefix='@OutputPrefix@' />
     </output>
 </ldndcproject>
-

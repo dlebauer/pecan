@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ldndcevent>
+  <global time="2019-01-01" />
+  <event id="0">
+    <event type="plant" time="2019-01-01">
+      <plant name="PERG" type="PERG">
+        <grass initialbiomass="500.0" />
+      </plant>
+    </event>
+    <event type="manure" time="2019-03-15">
+      <manure type="slurry" ph="8.85" c="457.78" cn="8.8" availn="0.69" nh4fraction="0.71" donfraction="0.06" no3fraction="0.0" ureafraction="0.23" cellulosefraction="0.6" ligninfraction="0.2" availc="0.1" />
+    </event>
+    <event type="cut" time="2019-05-14">
+      <cut remains="100.000" />
+    </event>
+    <event type="manure" time="2019-05-21">
+      <manure type="slurry" ph="7.61" c="431.34" cn="8.8" availn="0.68" nh4fraction="0.71" donfraction="0.06" no3fraction="0.0" ureafraction="0.23" cellulosefraction="0.6" ligninfraction="0.2" availc="0.1" />
+    </event>
+    <event type="cut" time="2019-06-20">
+      <cut remains="100.000" />
+    </event>
+    <event type="cut" time="2019-07-18">
+      <cut remains="100.000" />
+    </event>
+    <event type="manure" time="2019-07-27">
+      <manure type="slurry" ph="7.61" c="431.34" cn="8.8" availn="0.68" nh4fraction="0.71" donfraction="0.06" no3fraction="0.0" ureafraction="0.23" cellulosefraction="0.6" ligninfraction="0.2" availc="0.1" />
+    </event>
+    <event type="cut" time="2019-09-10">
+      <cut remains="100.000" />
+    </event>
+    <event type="manure" time="2019-09-24">
+      <manure type="slurry" ph="7.61" c="431.34" cn="8.8" availn="0.68" nh4fraction="0.71" donfraction="0.06" no3fraction="0.0" ureafraction="0.23" cellulosefraction="0.6" ligninfraction="0.2" availc="0.1" />
+    </event>
+    <event type="cut" time="2019-11-05">
+      <cut remains="100.000" />
+    </event>
+    <event type="manure" time="2019-11-05">
+      <manure type="slurry" ph="7.61" c="431.34" cn="8.8" availn="0.68" nh4fraction="0.71" donfraction="0.06" no3fraction="0.0" ureafraction="0.23" cellulosefraction="0.6" ligninfraction="0.2" availc="0.1" />
+    </event>
+  </event>
+</ldndcevent>

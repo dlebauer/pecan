@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ldndcsetup>
+  <setup id="0" name="graswang">
+    <location elevation="860.0" latitude="46.56" longitude="11.03" />
+    <models>
+      <model id="_MoBiLE" />
+    </models>
+    <mobile>
+      <modulelist>
+        <module id="microclimate:canopyecm" timemode="subdaily" />
+        <module id="watercycle:watercycledndc" timemode="subdaily">
+          <options potentialevapotranspiration="penman" />
+        </module>
+        <module id="airchemistry:airchemistrydndc" timemode="subdaily" />
+        <module id="physiology:plamox" timemode="subdaily">
+          <options plantfamilies="crops grass" />
+        </module>
+        <module id="soilchemistry:metrx" timemode="subdaily" />
+        <module id="output:microclimate:daily" />
+        <module id="output:watercycle:subdaily" />
+        <module id="output:physiology:subdaily" />
+        <module id="output:vegstructure:daily" />
+        <module id="output:soilchemistry:subdaily" />
+        <module id="output:report:arable" timemode="subdaily" />
+      </modulelist>
+    </mobile>
+  </setup>
+</ldndcsetup>

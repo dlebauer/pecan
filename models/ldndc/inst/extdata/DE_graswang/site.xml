@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<site>
+  <description>
+    <author>Ana Rodriguez, Edwin Haas</author>
+    <date>2016-06-13</date>
+    <dataset>IMK-IFU</dataset>
+    <source>IMK-IFU</source>
+  </description>
+  <soil>
+    <general humus="MULL" litterheight="" soil="CLAY" usehistory="grassland" />
+    <layers>
+      <layer bd="0.56" clay="0.58" corg="0.100" depth="10" ph="5.5" scel="0.005" split="1" wcmax="530" wcmin="267" sks="0.1" />
+      <layer bd="0.56" clay="0.58" corg="0.100" depth="30" ph="7.5" scel="0.005" split="3" wcmax="530" wcmin="267" sks="0.1" />
+      <layer bd="0.56" clay="0.58" corg="0.066" depth="90" ph="7.2" scel="0.008" split="5" wcmax="560" wcmin="221" sks="0.1" />
+      <layer bd="1.10" clay="0.59" corg="0.023" depth="120" ph="7.5" scel="0.015" split="4" wcmax="600" wcmin="175" sks="0.05" />
+      <layer bd="1.10" clay="0.57" corg="0.016" depth="120" ph="7.5" scel="0.015" split="2" wcmax="500" wcmin="175" sks="0.05" />
+      <layer bd="1.30" clay="0.57" corg="0.014" depth="80" ph="7.5" scel="0.008" split="2" wcmax="418" wcmin="135" sks="0.05" />
+      <layer bd="1.32" clay="0.56" corg="0.011" depth="70" ph="7.5" scel="0.013" split="1" wcmax="487" wcmin="217" />
+      <layer bd="1.34" clay="0.49" corg="0.007" depth="100" ph="7.6" scel="0.247" split="2" wcmax="421" wcmin="112" />
+      <layer bd="1.44" clay="0.49" corg="0.006" depth="90" ph="7.6" scel="0.087" split="2" wcmax="421" wcmin="112" />
+      <layer bd="1.43" clay="0.52" corg="0.004" depth="90" ph="7.6" scel="0.033" split="2" wcmax="400" wcmin="101" />
+      <layer bd="1.45" clay="0.53" corg="0.004" depth="140" ph="7.6" scel="0" split="3" wcmax="410" wcmin="78" />
+      <layer bd="1.46" clay="0.54" corg="0.004" depth="100" ph="7.6" scel="0" split="1" wcmax="426" wcmin="93" />
+      <layer bd="1.47" clay="0.52" corg="0.006" depth="100" ph="7.7" scel="0.033" split="1" wcmax="426" wcmin="161" />
+      <layer bd="1.40" clay="0.52" corg="0.007" depth="60" ph="7.6" scel="0.05" split="1" wcmax="426" wcmin="161" />
+    </layers>
+  </soil>
+</site>
