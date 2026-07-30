@@ -19,6 +19,8 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
 
   
   MinPackReq <- "1.35" # Current version 1.35
+  inputs <- settings$run$inputs
+  support_files <- ldndc_support_files(inputs)
   
   
   # Create Schedule time
@@ -40,21 +42,23 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   outdir <- file.path(settings$host$outdir, run.id)
   
   # Source
-  if(!is.null(settings$run$inputs$met$path)){
+  if(!is.null(support_files$met)){
     # For climate data
-    MetPath <- settings$run$inputs$met$path
+    MetPath <- support_files$met
     # Info for project file from which directory to read the inputs
     SourcePrefix <- paste0(rundir, "/")
     # Raw model outputs are written into own directory
     OutputPrefix <- file.path(outdir, "Output/")
+  } else {
+    PEcAn.logger::logger.severe("write.config.LDNDC needs one met input path")
   }
   
   
   # Add groundwater file, if it is available for site
   # Not obligatory file for model run
-  if(!is.null(settings$run$inputs$groundwater$path1)){
+  if(!is.null(support_files$groundwater)){
     GroundWater = '<groundwater source="groundwater.txt" format="txt" />'
-    groundwaterfile <- readLines(con = file.path(settings$run$inputs$groundwater$path1))
+    groundwaterfile <- readLines(con = support_files$groundwater)
     writeLines(groundwaterfile, con = file.path(settings$rundir, run.id, "groundwater.txt"))
   }else{GroundWater = ""}
   
@@ -139,10 +143,35 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   }
   
   jobsh <- gsub("@DELETE.RAW@", settings$model$delete.raw, jobsh)
+  jobsh <- gsub("@DELETE_RAW@", settings$model$delete.raw, jobsh)
   
   # Write job.sh file to rundir
   writeLines(jobsh, con = file.path(settings$rundir, run.id, "job.sh"))
   Sys.chmod(file.path(rundir, "job.sh")) # Permissions
+
+  support_file_names <- c("setup", "site", "siteparameters", "speciesparameters")
+  use_support_files <- all(!vapply(support_files[support_file_names], is.null, logical(1)))
+  if (use_support_files) {
+    run_dir <- file.path(settings$rundir, run.id)
+    if (is.null(support_files$events)) {
+      PEcAn.logger::logger.severe("write.config.LDNDC needs one events input path")
+    }
+
+    copy_ldndc_support_file(support_files$setup, file.path(run_dir, "setup.xml"))
+    copy_ldndc_support_file(support_files$site, file.path(run_dir, "site.xml"))
+    copy_ldndc_support_file(support_files$siteparameters, file.path(run_dir, "siteparameters.xml"))
+    copy_ldndc_support_file(support_files$speciesparameters, file.path(run_dir, "speciesparameters.xml"))
+    copy_ldndc_support_file(support_files$events, file.path(run_dir, "events.xml"))
+
+    if (!is.null(support_files$airchemistry)) {
+      copy_ldndc_support_file(support_files$airchemistry, file.path(run_dir, "airchemistry.txt"))
+    } else {
+      airchemistryfile <- readLines(con = system.file("airchemistry.txt", package = "PEcAn.LDNDC"), n = -1)
+      writeLines(airchemistryfile, con = file.path(run_dir, "airchemistry.txt"))
+    }
+
+    return(invisible(NULL))
+  }
   
   
   
@@ -252,14 +281,14 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   
   # Fetch event file from the given path, this might be modified, if initial
   # conditions are given, check the part of handling initial conditions later on
-  eventsfile <- readLines(con = file.path(settings$run$inputs$events$path1))
+  eventsfile <- readLines(con = support_files$events)
   
   # Fetch default site file. Will also be populated based on the given initial conditions
   sitefile <- readLines(con = system.file("site_template.xml", package = "PEcAn.LDNDC"), n = -1)
   
   # Use airchemistry file, which represents Finland
-  if(!is.null(settings$run$inputs$airchemistry$path1)){
-    airchemistryfile <- readLines(con = file.path(settings$run$inputs$airchemistry$path1))
+  if(!is.null(support_files$airchemistry)){
+    airchemistryfile <- readLines(con = support_files$airchemistry)
   } else{
     airchemistryfile <- readLines(con = system.file("airchemistry.txt", package = "PEcAn.LDNDC"), n = -1)
   }
@@ -2138,3 +2167,56 @@ write.config.LDNDC <- function(defaults, trait.values, settings, run.id) {
   #------------------------
   
 } # write.config.LDNDC
+
+ldndc_support_files <- function(inputs) {
+  list(
+    met = ldndc_input_path(inputs$met),
+    events = ldndc_input_path(inputs$events),
+    setup = ldndc_input_path(inputs$setup),
+    site = ldndc_input_path(inputs$site),
+    siteparameters = ldndc_input_path(inputs$siteparameters),
+    speciesparameters = ldndc_input_path(inputs$speciesparameters),
+    airchemistry = ldndc_input_path(inputs$airchemistry),
+    groundwater = ldndc_input_path(inputs$groundwater)
+  )
+}
+
+ldndc_input_path <- function(input) {
+  if (is.null(input)) {
+    return(NULL)
+  }
+
+  if (is.character(input) && length(input) > 0) {
+    path <- input[[1]]
+    if (!is.na(path) && nzchar(path)) {
+      return(path)
+    }
+  }
+
+  for (field in c("path1", "path")) {
+    path <- input[[field]]
+    if (is.null(path)) {
+      next
+    }
+    path <- unlist(path, use.names = FALSE)
+    path <- path[!is.na(path) & nzchar(path)]
+    if (length(path)) {
+      return(path[[1]])
+    }
+  }
+
+  NULL
+}
+
+copy_ldndc_support_file <- function(from, to) {
+  if (is.null(from) || !file.exists(from)) {
+    PEcAn.logger::logger.severe("LDNDC support file not found: ", from)
+  }
+
+  copied <- file.copy(from, to, overwrite = TRUE)
+  if (!copied) {
+    PEcAn.logger::logger.severe("Could not copy LDNDC support file to ", to)
+  }
+
+  invisible(to)
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ldndcspeciesparameters>
+  <speciesparameters id="0">
+    <species mnemonic="PERG" group="grass" name="perennial Grass">
+      <par name="WUECMAX" value="11.0" />
+    </species>
+  </speciesparameters>
+</ldndcspeciesparameters>

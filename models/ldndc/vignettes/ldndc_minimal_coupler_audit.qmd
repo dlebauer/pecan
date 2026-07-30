@@ -1,0 +1,371 @@
+---
+title: "PEcAn-LDNDC Minimal Coupler Audit Workflow"
+format:
+  html:
+    toc: true
+    code-fold: false
+execute:
+  echo: true
+  warning: true
+  message: true
+---
+
+## Purpose
+
+This workflow performs a local execution audit of the PEcAn LDNDC coupler using:
+
+- the local PEcAn checkout
+- a single archive cache under `models/ldndc/vignettes/local-assets/`
+- a public macOS package download fallback into that cache
+- an isolated audit workspace under `/tmp`
+
+It does not require `LDNDC_USER` or `LDNDC_PASS`.
+
+```{r}
+repo_root <- normalizePath(system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE))
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+run_cmd <- function(cmd, args = character(), wd = repo_root, env = character(), allow_fail = FALSE) {
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(wd)
+
+  out <- system2(cmd, args, stdout = TRUE, stderr = TRUE, env = env)
+  status <- attr(out, "status") %||% 0L
+
+  cat("$", paste(c(cmd, args), collapse = " "), "\n")
+  if (length(out)) {
+    cat(paste(out, collapse = "\n"), "\n")
+  }
+
+  if (!allow_fail && !identical(status, 0L)) {
+    stop(sprintf("Command failed with status %s: %s", status, cmd), call. = FALSE)
+  }
+
+  invisible(list(status = status, output = out))
+}
+
+local_archive_name <- "ldndc-1.37.mac64.2026-03-03.tar.bz2"
+public_archive_url <- paste0(
+  "https://ldndc.imk-ifu.kit.edu/ldndc/downloads/public/packages/",
+  "mac64/ldndc-1.37.mac64.2026-03-03.tar.bz2"
+)
+archive_cache_dir <- file.path(repo_root, "models", "ldndc", "vignettes", "local-assets")
+dir.create(archive_cache_dir, recursive = TRUE, showWarnings = FALSE)
+ldndc_archive <- file.path(archive_cache_dir, local_archive_name)
+
+if (!file.exists(ldndc_archive)) {
+  run_cmd("curl", c("-fL", public_archive_url, "-o", ldndc_archive))
+}
+
+audit_root <- tempfile("ldndc-quarto-audit-")
+dir.create(audit_root)
+audit_home <- file.path(audit_root, "home")
+dir.create(audit_home)
+audit_r_lib <- file.path(audit_root, "Rlib")
+dir.create(audit_r_lib)
+
+replace_setting <- function(lines, key, value) {
+  pattern <- paste0("^", key, "\\s*=.*$")
+  replacement <- paste0(key, " = \"", value, "\"")
+  if (any(grepl(pattern, lines))) {
+    sub(pattern, replacement, lines)
+  } else {
+    c(lines, replacement)
+  }
+}
+
+insert_after_setting <- function(lines, anchor_key, new_key, value) {
+  new_line <- paste0(new_key, " = \"", value, "\"")
+  if (any(grepl(paste0("^", new_key, "\\s*=.*$"), lines))) {
+    return(replace_setting(lines, new_key, value))
+  }
+
+  anchor <- which(grepl(paste0("^", anchor_key, "\\s*=.*$"), lines))[1]
+  append(lines, new_line, after = anchor)
+}
+
+write_runtime_config <- function(ldndc_root, config_path, input_path = ".", output_path = ".") {
+  conf <- readLines(file.path(ldndc_root, "ldndc.conf"))
+  conf <- replace_setting(conf, "resources_path", ldndc_root)
+  conf <- insert_after_setting(conf, "resources_path", "udunits_path", file.path(ldndc_root, "dotfiles"))
+  conf <- insert_after_setting(
+    conf,
+    "udunits_path",
+    "service_registry_url",
+    file.path(ldndc_root, "dotfiles", "service-registry.json")
+  )
+  conf <- insert_after_setting(conf, "service_registry_url", "input_path", input_path)
+  conf <- insert_after_setting(conf, "input_path", "output_path", output_path)
+  writeLines(conf, config_path)
+  config_path
+}
+
+write_ldndc_met_fixture <- function(target_dir) {
+  source_file <- file.path(repo_root, "models", "basgra", "tests", "testthat", "test.met.2019.nc")
+  target_file <- file.path(target_dir, "ldndc.met.2019.nc")
+  copied <- file.copy(source_file, target_file, overwrite = TRUE)
+  if (!copied) {
+    stop("Failed to copy met fixture to ", target_file, call. = FALSE)
+  }
+
+  nc <- ncdf4::nc_open(target_file, write = TRUE)
+  on.exit(ncdf4::nc_close(nc), add = TRUE)
+
+  air_temperature <- ncdf4::ncvar_get(nc, "air_temperature")
+  dims <- nc[["var"]][["air_temperature"]][["dim"]]
+
+  nc <- ncdf4::ncvar_add(
+    nc,
+    ncdf4::ncvar_def("air_pressure", "Pa", dim = dims, missval = -9999)
+  )
+  nc <- ncdf4::ncvar_add(
+    nc,
+    ncdf4::ncvar_def(
+      "water_vapor_saturation_deficit",
+      "Pa",
+      dim = dims,
+      missval = -9999
+    )
+  )
+
+  ncdf4::ncvar_put(
+    nc,
+    "air_pressure",
+    array(101325, dim = dim(air_temperature))
+  )
+  ncdf4::ncvar_put(
+    nc,
+    "water_vapor_saturation_deficit",
+    array(500, dim = dim(air_temperature))
+  )
+
+  target_file
+}
+```
+
+## 1) Environment prerequisites
+
+```{r}
+run_cmd("uname", "-a")
+run_cmd("sw_vers")
+run_cmd("R", "--version")
+run_cmd("Rscript", "--version")
+run_cmd("quarto", "--version")
+```
+
+```{r}
+required <- c("ncdf4", "testthat", "readr", "lubridate", "dplyr", "pak", "withr")
+missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing)) {
+  stop("Missing R packages: ", paste(missing, collapse = ", "))
+}
+```
+
+## 2) Extract and validate the bundled LDNDC runtime
+
+```{r}
+run_cmd("tar", c("-xjf", ldndc_archive, "-C", audit_root))
+
+ldndc_root <- file.path(audit_root, "ldndc-1.37.mac64")
+run_cmd("xattr", c("-dr", "com.apple.quarantine", ldndc_root), allow_fail = TRUE)
+run_cmd("sh", "install.sh", wd = ldndc_root, env = sprintf("HOME=%s", audit_home))
+
+direct_conf <- write_runtime_config(
+  ldndc_root = ldndc_root,
+  config_path = file.path(audit_root, "ldndc-direct.conf"),
+  input_path = "projects",
+  output_path = "projects"
+)
+
+run_cmd(
+  file.path(ldndc_root, "bin", "ldndc"),
+  c("-c", direct_conf, "projects/grassland/DE_graswang/DE_graswang.ldndc"),
+  wd = ldndc_root
+)
+```
+
+## 3) Install the local PEcAn.LDNDC package
+
+```{r}
+run_cmd(
+  file.path(R.home("bin"), "R"),
+  c("CMD", "INSTALL", "-l", audit_r_lib, file.path(repo_root, "models/ldndc")),
+  env = "TMPDIR=/tmp"
+)
+
+.libPaths(c(audit_r_lib, .libPaths()))
+```
+
+## 4) Run package tests
+
+```{r}
+testthat::test_dir(file.path(repo_root, "models", "ldndc", "tests", "testthat"))
+```
+
+## 5) Smoke-test the coupler functions
+
+```{r}
+smoke_dir <- tempfile("ldndc-smoke-")
+dir.create(smoke_dir)
+dir.create(file.path(smoke_dir, "Output"))
+
+met_dir <- tempfile("ldndc-met-")
+dir.create(met_dir)
+met_fixture <- write_ldndc_met_fixture(met_dir)
+met_result <- PEcAn.LDNDC::met2model.LDNDC(
+  met_dir,
+  "ldndc.met",
+  smoke_dir,
+  "2019-01-01",
+  "2019-01-03"
+)
+
+datetimes <- c(
+  "2000-01-01 00:00:00",
+  "2000-01-01 06:00:00",
+  "2000-01-01 12:00:00",
+  "2000-01-01 18:00:00",
+  "2000-01-02 00:00:00"
+)
+
+readr::write_tsv(
+  data.frame(
+    datetime = datetimes,
+    species = "all",
+    lai = seq(1, 1.4, length.out = length(datetimes)),
+    dC_co2_upt.kgCm.2. = rep(0.1, length(datetimes)),
+    dC_maintenance_resp.kgCm.2. = rep(0.02, length(datetimes)),
+    dC_transport_resp.kgCm.2. = rep(0.01, length(datetimes)),
+    dC_growth_resp.kgCm.2. = rep(0.01, length(datetimes)),
+    DW_below.kgDWm.2. = rep(0.2, length(datetimes)),
+    DW_above.kgDWm.2. = rep(0.3, length(datetimes))
+  ),
+  file.path(smoke_dir, "Output", "physiology-subdaily.txt")
+)
+
+readr::write_tsv(
+  data.frame(
+    datetime = datetimes,
+    sC_co2_prod_hetero.kgCm.2. = rep(0.03, length(datetimes))
+  ),
+  file.path(smoke_dir, "Output", "soilchemistry-subdaily.txt")
+)
+
+readr::write_tsv(
+  data.frame(
+    datetime = datetimes,
+    soilwater_10cm... = rep(0.2, length(datetimes)),
+    soilwater_30cm... = rep(0.25, length(datetimes))
+  ),
+  file.path(smoke_dir, "Output", "watercycle-subdaily.txt")
+)
+
+readr::write_tsv(
+  data.frame(
+    datetime = "2000-01-01 00:00:00",
+    dC_fru_export.kgCha.1. = 0,
+    dC_fol_export.kgCha.1. = 0,
+    dC_frt_export.kgCha.1. = 0,
+    dC_lst_above_export.kgCha.1. = 0,
+    dC_lst_below_export.kgCha.1. = 0,
+    dC_dst_above_export.kgCha.1. = 0,
+    dC_dst_below_export.kgCha.1. = 0,
+    dC_straw_export.kgCha.1. = 0
+  ),
+  file.path(smoke_dir, "Output", "report-harvest.txt")
+)
+
+readr::write_tsv(
+  data.frame(
+    datetime = "2000-01-01 00:00:00",
+    dC_fru_export.kgCha.1. = 0,
+    dC_fol_export.kgCha.1. = 0,
+    dC_dfol_export.kgCha.1. = 0,
+    dC_lst_export.kgCha.1. = 0,
+    dC_dst_export.kgCha.1. = 0,
+    dC_frt_export.kgCha.1. = 0
+  ),
+  file.path(smoke_dir, "Output", "report-cut.txt")
+)
+
+PEcAn.LDNDC::model2netcdf.LDNDC(smoke_dir, 60, 25, "2000-01-01", "2000-01-01", delete.raw = FALSE)
+
+stopifnot(file.exists(met_fixture))
+stopifnot(file.exists(met_result$file[[1]]))
+stopifnot(file.exists(file.path(smoke_dir, "2000.nc")))
+```
+
+## 6) Minimal generated PEcAn run
+
+```{r}
+sample_dir <- file.path(ldndc_root, "projects", "grassland", "DE_graswang")
+generated_run_root <- file.path(audit_root, "generated-rundir")
+generated_out_root <- file.path(audit_root, "generated-outdir")
+run_id <- "GENERATED-RUN"
+
+dir.create(file.path(generated_run_root, run_id), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(generated_out_root, run_id), recursive = TRUE, showWarnings = FALSE)
+
+settings <- list(
+  host = list(
+    rundir = generated_run_root,
+    outdir = generated_out_root
+  ),
+  rundir = generated_run_root,
+  model = list(
+    binary = file.path(ldndc_root, "bin", "ldndc"),
+    delete.raw = FALSE
+  ),
+  run = list(
+    start.date = "2010-01-01",
+    end.date = "2015-12-31",
+    site = list(
+      id = 1,
+      lat = 46.56,
+      lon = 11.03
+    ),
+    inputs = list(
+      met = list(path = file.path(sample_dir, "DE_graswang_climate.txt")),
+      events = list(path1 = file.path(sample_dir, "DE_graswang_event.xml")),
+      airchemistry = list(path1 = NULL),
+      poolinitcond = list(path = NULL),
+      groundwater = list(path1 = NULL)
+    )
+  ),
+  pfts = list(list(name = "meadow"))
+)
+
+PEcAn.LDNDC::write.config.LDNDC(
+  defaults = NULL,
+  trait.values = list(meadow = list()),
+  settings = settings,
+  run.id = run_id
+)
+
+job_path <- file.path(generated_run_root, run_id, "job.sh")
+run_cmd(
+  "sh",
+  job_path,
+  env = c(
+    paste0("R_LIBS=", audit_r_lib),
+    "TMPDIR=/tmp"
+  )
+)
+
+generated_log <- file.path(generated_out_root, run_id, "logfile.txt")
+nc_files <- Sys.glob(file.path(generated_out_root, run_id, "*.nc"))
+stopifnot(length(nc_files) == 6L)
+stopifnot(file.exists(generated_log))
+```
+
+## 7) Key artifacts
+
+```{r}
+cat("Archive source:", ldndc_archive, "\n")
+cat("Audit workspace:", audit_root, "\n")
+cat("Smoke-test netCDF:", file.path(smoke_dir, "2000.nc"), "\n")
+cat("Generated-run logfile:", generated_log, "\n")
+cat("Generated-run netCDF files:\n")
+cat(paste(nc_files, collapse = "\n"), "\n")
+```

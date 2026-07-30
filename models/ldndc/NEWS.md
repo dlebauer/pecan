@@ -7,6 +7,8 @@
 * Added a runnable `met2model.LDNDC()` test using a temporary local fixture.
 * Added a getting-started Quarto vignette for the LDNDC-specific PEcAn
   workflow.
+* Added `download.LDNDC()` and package fixtures for the grassland/meadow
+  getting-started example.
 
 # PEcAn.LDNDC 1.0.2.9000
 

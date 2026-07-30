@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# redirect output
-exec 3>&1
-exec &> "@OUTDIR@/logfile.txt"
-
 # host specific setup
 @HOST_SETUP@
 
 # create output folder
 mkdir -p "@OUTDIR@"
+
+# redirect output
+exec 3>&1
+exec &> "@OUTDIR@/logfile.txt"
 
 LDNDC_BINARY="@BINARY@"
 LDNDC_PROJECT="@PROJECT@"
@@ -23,6 +23,13 @@ fi
 if [ ! -d "$LDNDC_ROOT/dotfiles" ]; then
   echo -e "ERROR IN MODEL RUN\nMissing LDNDC runtime support files under: $LDNDC_ROOT" >&3
   exit 1
+fi
+
+Rscript -e "if (!requireNamespace('PEcAn.LDNDC', quietly = TRUE)) quit(status = 1)"
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo -e "ERROR IN MODEL RUN\nRscript cannot load PEcAn.LDNDC" >&3
+  exit $STATUS
 fi
 
 cd "@RUNDIR@"
@@ -51,7 +58,19 @@ EOF
 
 
 # see if application needs running
-if [ ! -e "@OUTDIR@/Output" ]; then
+START_YEAR=$(printf '%s' "@START_DATE@" | cut -c1-4)
+END_YEAR=$(printf '%s' "@END_DATE@" | cut -c1-4)
+NEEDS_RUN=0
+if [ ! -d "@OUTDIR@/Output" ]; then
+  NEEDS_RUN=1
+fi
+for YEAR in $(seq "$START_YEAR" "$END_YEAR"); do
+  if [ ! -e "@OUTDIR@/${YEAR}.nc" ]; then
+    NEEDS_RUN=1
+  fi
+done
+
+if [ "$NEEDS_RUN" -ne 0 ]; then
   cd "@RUNDIR@"
   
   "$LDNDC_BINARY" -c "$LDNDC_CONFIG" "$LDNDC_PROJECT"
@@ -65,6 +84,11 @@ if [ ! -e "@OUTDIR@/Output" ]; then
 
   # convert to MsTMIP
   Rscript -e "PEcAn.LDNDC::model2netcdf.LDNDC('@OUTDIR@', @SITE_LAT@, @SITE_LON@, '@START_DATE@', '@END_DATE@', @DELETE_RAW@)"
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo -e "ERROR IN model2netcdf.LDNDC\nLogfile is located at '@OUTDIR@/logfile.txt'" >&3
+    exit $STATUS
+  fi
 fi
 
 # copy readme with specs to output when present
